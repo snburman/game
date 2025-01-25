@@ -2,13 +2,15 @@ package objects
 
 import (
 	"github.com/hajimehoshi/ebiten"
-	"github.com/snburman/magicgame/input"
+	"github.com/snburman/game/input"
 )
 
 // Image frame indices
 const (
-	FaceRight = iota
+	FaceUp = iota
+	FaceDown
 	FaceLeft
+	FaceRight
 )
 
 type Player struct {
@@ -28,10 +30,12 @@ func (p *Player) Update(screen *ebiten.Image, i input.Input, tick uint) error {
 		input.Up: func() {
 			pos.Move(Up, p.Speed())
 			p.SetDirection(Up)
+			p.SetCurrentFrame(FaceUp)
 		},
 		input.Down: func() {
 			pos.Move(Down, p.Speed())
 			p.SetDirection(Down)
+			p.SetCurrentFrame(FaceDown)
 		},
 		input.Left: func() {
 			pos.Move(Left, p.Speed())

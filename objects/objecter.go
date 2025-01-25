@@ -2,7 +2,7 @@ package objects
 
 import (
 	"github.com/hajimehoshi/ebiten"
-	"github.com/snburman/magicgame/input"
+	"github.com/snburman/game/input"
 )
 
 type Objecter interface {

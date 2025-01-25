@@ -4,32 +4,33 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/snburman/magicgame/assets"
-	"github.com/snburman/magicgame/input"
+	"github.com/snburman/game/assets"
+	"github.com/snburman/game/input"
 )
 
 type ObjectName string
 
 type Object struct {
-	name         string
-	img          *ebiten.Image
+	name string
+	img  *ebiten.Image
+	// TODO: Update framespec with new image model
 	frames       []assets.FrameSpec
 	currentFrame int
 	position     Position
 	direction    Direction
 	speed        int
-	scale        int
+	scale        float64
 }
 
 type ObjectOptions struct {
 	Position  Position
 	Direction Direction
 	Speed     int
-	Scale     int
+	Scale     float64
 }
 
 func NewObject(img assets.Image, opts ObjectOptions) *Object {
-	scale := 1
+	scale := 1.0
 	if opts.Scale != 0 {
 		scale = opts.Scale
 	}
@@ -99,56 +100,35 @@ func (s *Object) Draw(screen *ebiten.Image, tick uint) {
 
 	opts.GeoM.Scale(float64(s.scale), float64(s.scale))
 	opts.GeoM.Translate(float64(s.position.X), float64(s.position.Y))
-	// opts.GeoM.Rotate(float64(90))
-
-	// image := s.img.SubImage(
-	// 	image.Rect(
-	// 		s.frames[s.currentFrame].X,
-	// 		s.frames[s.currentFrame].Y,
-	// 		s.frames[s.currentFrame].X+s.frames[s.currentFrame].W,
-	// 		s.frames[s.currentFrame].Y+s.frames[s.currentFrame].H),
-	// ).(*ebiten.Image)
 
 	screen.DrawImage(s.img, opts)
 }
 
 type ObjectManager struct {
 	mu      sync.Mutex
-	Objects map[string]*Objecter
+	Objects []*Objecter
 }
 
 func NewObjectManager() *ObjectManager {
 	return &ObjectManager{
-		Objects: make(map[string]*Objecter),
+		Objects: []*Objecter{},
 	}
 }
 
 func (om *ObjectManager) Add(s Objecter) {
 	om.mu.Lock()
 	defer om.mu.Unlock()
-	om.Objects[s.Name()] = &s
+	om.Objects = append(om.Objects, &s)
 }
 
-func (om *ObjectManager) Get(name string) *Objecter {
-	om.mu.Lock()
-	defer om.mu.Unlock()
-	return om.Objects[name]
-}
-
-func (om *ObjectManager) GetAll() map[string]*Objecter {
+func (om *ObjectManager) GetAll() []*Objecter {
 	om.mu.Lock()
 	defer om.mu.Unlock()
 	return om.Objects
 }
 
-func (om *ObjectManager) Remove(name string) {
-	om.mu.Lock()
-	defer om.mu.Unlock()
-	delete(om.Objects, name)
-}
-
 func (om *ObjectManager) RemoveAll() {
 	om.mu.Lock()
 	defer om.mu.Unlock()
-	om.Objects = make(map[string]*Objecter)
+	om.Objects = []*Objecter{}
 }

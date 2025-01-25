@@ -1,13 +1,12 @@
-package magicgame
+package game
 
 import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/snburman/magicgame/assets"
-	"github.com/snburman/magicgame/input"
-	"github.com/snburman/magicgame/objects"
-	"github.com/snburman/magicgame/workers"
+	"github.com/snburman/game/assets"
+	"github.com/snburman/game/input"
+	"github.com/snburman/game/objects"
 )
 
 const MAX_TICS = 10000
@@ -18,7 +17,6 @@ type Game struct {
 	assets   *assets.Assets
 	objects  *objects.ObjectManager
 	keyboard *input.Keyboard
-	Workers  *workers.WorkerPool
 }
 
 func NewGame() *Game {
@@ -26,7 +24,6 @@ func NewGame() *Game {
 		assets:   assets.Load(),
 		objects:  objects.NewObjectManager(),
 		keyboard: input.NewKeyboard(),
-		Workers:  workers.NewWorkerPool(MAX_WORKERS),
 	}
 }
 
@@ -62,22 +59,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return 528, 528
+	return 336, 336
 }
 
 func (g *Game) Run() error {
-	g.InitWorkers()
 	return ebiten.RunGame(g)
-}
-
-func (g *Game) Stop() {
-	g.Workers.StopAll()
-}
-
-func (g *Game) InitWorkers() {
-	mapWorker := workers.NewMapWorker(g.objects)
-	g.Workers.Add(mapWorker)
-	g.Workers.StartAll()
 }
 
 func (g *Game) Assets() *assets.Assets {
