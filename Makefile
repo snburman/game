@@ -5,7 +5,7 @@ make:
 
 build:
 	sudo env GOOS=js GOARCH=wasm go build -o game.wasm github.com/snburman/game/cmd/game
-	cp game.wasm ../magic_game_client/public/game.wasm
+	cp game.wasm ../game-client/static/game.wasm
 
 assets:
 	go run cmd/generate/main.go

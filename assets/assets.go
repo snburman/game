@@ -34,7 +34,7 @@ func NewAsset(t AssetType, path string) ([]byte, error) {
 }
 
 type Assets struct {
-	Images Images `json:"images"`
+	Images []Image `json:"images"`
 }
 
 type Images struct {
@@ -87,7 +87,7 @@ func Load() *Assets {
 		}
 		_map.Data[key].Image = img
 	}
-	assets.Images.Sprites = append(assets.Images.Sprites, _map.Data...)
+	assets.Images = append(assets.Images, _map.Data...)
 
 	return &assets
 }

@@ -27,7 +27,7 @@ func main() {
 	game := game.NewGame()
 
 	assets := game.Assets()
-	for _, img := range assets.Images.Sprites {
+	for _, img := range assets.Images {
 		object := objects.NewObject(img, objects.ObjectOptions{
 			Position: objects.Position{
 				X: img.X,
