@@ -3,7 +3,6 @@ package assets
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -80,7 +79,6 @@ func Load() *Assets {
 	var assets Assets = Assets{}
 
 	for key, image := range _map.Data {
-		fmt.Printf("x: %d, y: %d\n", image.X, image.Y)
 		img, err := imageFromPixelData(image)
 		if err != nil {
 			panic(err)
