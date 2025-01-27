@@ -6,20 +6,6 @@ import (
 	"github.com/snburman/game/objects"
 )
 
-type Level struct {
-	Width   int
-	Height  int
-	objects []*objects.Object
-}
-
-func NewLevel(width, height int, objects []*objects.Object) *Level {
-	return &Level{
-		Width:   width,
-		Height:  height,
-		objects: objects,
-	}
-}
-
 func main() {
 	// TODO: use global.JS to get user ID
 	game := game.NewGame()
