@@ -3,7 +3,6 @@ package assets
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -34,7 +33,7 @@ func NewAsset(t AssetType, path string) ([]byte, error) {
 }
 
 type Assets struct {
-	Images Images `json:"images"`
+	Images []Image `json:"images"`
 }
 
 type Images struct {
@@ -80,14 +79,13 @@ func Load() *Assets {
 	var assets Assets = Assets{}
 
 	for key, image := range _map.Data {
-		fmt.Printf("x: %d, y: %d\n", image.X, image.Y)
 		img, err := imageFromPixelData(image)
 		if err != nil {
 			panic(err)
 		}
 		_map.Data[key].Image = img
 	}
-	assets.Images.Sprites = append(assets.Images.Sprites, _map.Data...)
+	assets.Images = append(assets.Images, _map.Data...)
 
 	return &assets
 }

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/hajimehoshi/ebiten"
 	"github.com/snburman/game"
 	"github.com/snburman/game/objects"
@@ -27,7 +25,7 @@ func main() {
 	game := game.NewGame()
 
 	assets := game.Assets()
-	for _, img := range assets.Images.Sprites {
+	for _, img := range assets.Images {
 		object := objects.NewObject(img, objects.ObjectOptions{
 			Position: objects.Position{
 				X: img.X,
@@ -39,7 +37,6 @@ func main() {
 		})
 		game.Objects().Add(object)
 	}
-	fmt.Println(game.Objects())
 	// player := objects.NewPlayer(*object)
 
 	ebiten.SetWindowSize(336, 336)
