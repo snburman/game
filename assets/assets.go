@@ -36,10 +36,6 @@ type Assets struct {
 	Images []Image `json:"images"`
 }
 
-type Images struct {
-	Sprites []Image `json:"sprites"`
-}
-
 type FrameSpec struct {
 	X int `json:"x"`
 	Y int `json:"y"`
