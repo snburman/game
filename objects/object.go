@@ -11,10 +11,8 @@ import (
 type ObjectName string
 
 type Object struct {
-	name string
-	img  *ebiten.Image
-	// TODO: Update framespec with new image model
-	frames       []assets.FrameSpec
+	name         string
+	img          *ebiten.Image
 	currentFrame int
 	position     Position
 	direction    Direction
@@ -55,10 +53,6 @@ func (s Object) Name() string {
 
 func (s Object) Image() *ebiten.Image {
 	return s.img
-}
-
-func (s Object) Frames() []assets.FrameSpec {
-	return s.frames
 }
 
 func (s Object) CurrentFrame() int {

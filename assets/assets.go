@@ -2,45 +2,17 @@ package assets
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/snburman/game/config"
 )
 
 type AssetType string
 
-type Asset struct {
-	Path string
-	Data []byte
-}
-
-func NewAsset(t AssetType, path string) ([]byte, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	switch t {
-	case PNG:
-		return pngBytesFromFile(file)
-	default:
-		return nil, errors.New("unsupported asset type")
-	}
-}
-
 type Assets struct {
 	Images []Image `json:"images"`
-}
-
-type FrameSpec struct {
-	X int `json:"x"`
-	Y int `json:"y"`
-	W int `json:"w"`
-	H int `json:"h"`
 }
 
 func Load() *Assets {

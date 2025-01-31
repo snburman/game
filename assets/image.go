@@ -26,7 +26,7 @@ type Image struct {
 	*ebiten.Image `json:"-"`
 }
 
-func pngBytesFromFile(file io.Reader) ([]byte, error) {
+func PngBytesFromFile(file io.Reader) ([]byte, error) {
 	img, _, err := image.Decode(file)
 	if err != nil {
 		return nil, err
