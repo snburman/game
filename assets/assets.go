@@ -17,6 +17,8 @@ type Assets struct {
 
 func Load() *Assets {
 	//TODO: acquire ID from JS.globals
+	// id := js.Global().Get("globals").Get("id").String()
+
 	id := "6794a98e48815ec0dd9c19d0"
 	// Make get request
 	client := http.Client{}
@@ -44,7 +46,7 @@ func Load() *Assets {
 		panic(err)
 	}
 
-	var assets Assets = Assets{}
+	var assetsUnsorted Assets = Assets{}
 
 	for key, image := range _map.Data {
 		img, err := imageFromPixelData(image)
@@ -53,9 +55,21 @@ func Load() *Assets {
 		}
 		_map.Data[key].Image = img
 	}
-	assets.Images = append(assets.Images, _map.Data...)
+	assetsUnsorted.Images = append(assetsUnsorted.Images, _map.Data...)
 
-	return &assets
+	// tiles first then non-tiles
+	var assetsSorted Assets = Assets{}
+	var nonTiles []Image
+	for _, img := range assetsUnsorted.Images {
+		if img.AssetType == Tile {
+			assetsSorted.Images = append(assetsSorted.Images, img)
+		} else {
+			nonTiles = append(nonTiles, img)
+		}
+	}
+	assetsSorted.Images = append(assetsSorted.Images, nonTiles...)
+
+	return &assetsSorted
 }
 
 type Pixel struct {

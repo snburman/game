@@ -10,7 +10,6 @@ import (
 )
 
 const MAX_TICS = 10000
-const MAX_WORKERS = 10
 
 type Game struct {
 	tick     uint

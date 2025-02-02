@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten"
 	"github.com/snburman/game"
 	"github.com/snburman/game/objects"
@@ -12,6 +14,7 @@ func main() {
 
 	assets := game.Assets()
 	for _, img := range assets.Images {
+		fmt.Println(img.AssetType)
 		object := objects.NewObject(img, objects.ObjectOptions{
 			Position: objects.Position{
 				X: img.X,
@@ -27,7 +30,6 @@ func main() {
 
 	ebiten.SetWindowSize(336, 336)
 	ebiten.SetWindowTitle("Game")
-	ebiten.SetWindowResizable(true)
 
 	if err := game.Run(); err != nil {
 		panic(err)
