@@ -11,13 +11,21 @@ import (
 )
 
 const (
-	PNG AssetType = "png"
+	PNG         AssetType = "png"
+	Tile        AssetType = "tile"
+	Object      AssetType = "object"
+	PlayerUp    AssetType = "player_up"
+	PlayerDown  AssetType = "player_down"
+	PlayerLeft  AssetType = "player_left"
+	PlayerRight AssetType = "player_right"
 )
 
 type Image struct {
-	X    int    `json:"x"`
-	Y    int    `json:"y"`
-	Name string `json:"name"`
+	ID        string    `json:"_id"`
+	X         int       `json:"x"`
+	Y         int       `json:"y"`
+	Name      string    `json:"name"`
+	AssetType AssetType `json:"asset_type"`
 	// Path          string      `json:"path"`
 	Width  int `json:"width"`
 	Height int `json:"height"`
