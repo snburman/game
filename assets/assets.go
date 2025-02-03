@@ -2,9 +2,11 @@ package assets
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"syscall/js"
 
 	"github.com/snburman/game/config"
 )
@@ -16,13 +18,15 @@ type Assets struct {
 }
 
 func Load() *Assets {
-	//TODO: acquire ID from JS.globals
-	// id := js.Global().Get("globals").Get("id").String()
+	// Get user ID from global JS
+	fun := js.Global().Get("id")
+	id := fun.Invoke().String()
+	fmt.Println("USER_ID: ", id)
 
-	id := "6794a98e48815ec0dd9c19d0"
+	// userID := "6778d9d1a1a3232f20545d84"
 	// Make get request
 	client := http.Client{}
-	req, err := http.NewRequest("GET", config.Env().SERVER_URL+"/game/wasm/map/"+id, nil)
+	req, err := http.NewRequest("GET", config.Env().SERVER_URL+"/game/wasm/map/primary/"+id, nil)
 	if err != nil {
 		log.Println("error during new request")
 		panic(err)
