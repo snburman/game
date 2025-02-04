@@ -8,16 +8,23 @@ import (
 	"github.com/snburman/game/input"
 )
 
-type ObjectName string
+type ObjectType string
+
+const (
+	ObjectTile     ObjectType = "tile"
+	ObjectObstacle ObjectType = "obstacle"
+	ObjectPlayer   ObjectType = "player"
+)
 
 type Object struct {
-	name         string
-	img          *ebiten.Image
-	currentFrame int
-	position     Position
-	direction    Direction
-	speed        int
-	scale        float64
+	name      string
+	img       *ebiten.Image
+	ObjType   ObjectType
+	frames    map[Direction]*ebiten.Image
+	position  Position
+	direction Direction
+	speed     int
+	scale     float64
 }
 
 type ObjectOptions struct {
@@ -36,15 +43,42 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 	if opts.Speed != 0 {
 		speed = opts.Speed
 	}
-	return &Object{
-		img:  img.Image,
-		name: img.Name,
-		// frames:    img.Frames,
+	var t ObjectType
+	switch img.AssetType {
+	case assets.Tile:
+		t = ObjectTile
+	case assets.Object:
+		t = ObjectObstacle
+	case assets.PlayerUp, assets.PlayerDown, assets.PlayerLeft, assets.PlayerRight:
+		t = ObjectPlayer
+	}
+	if t == "" {
+		t = ObjectTile
+	}
+
+	o := &Object{
+		img:       img.Image,
+		name:      img.Name,
+		ObjType:   t,
+		frames:    map[Direction]*ebiten.Image{},
 		position:  opts.Position,
 		direction: opts.Direction,
 		speed:     speed,
 		scale:     scale,
 	}
+
+	// assign default frames
+	if o.ObjType == ObjectPlayer {
+		o.frames[Up] = img.Image
+		o.frames[Down] = img.Image
+		o.frames[Left] = img.Image
+		o.frames[Right] = img.Image
+	}
+	return o
+}
+
+func (s *Object) SetFrame(d Direction, img *ebiten.Image) {
+	s.frames[d] = img
 }
 
 func (s Object) Name() string {
@@ -55,14 +89,6 @@ func (s Object) Image() *ebiten.Image {
 	return s.img
 }
 
-func (s Object) CurrentFrame() int {
-	return s.currentFrame
-}
-
-func (s *Object) SetCurrentFrame(f int) {
-	s.currentFrame = f
-}
-
 func (s Object) Position() Position {
 	return s.position
 }
@@ -71,7 +97,7 @@ func (s *Object) SetPosition(p Position) {
 	s.position = p
 }
 
-func (s Object) Direction() Direction {
+func (s *Object) Direction() Direction {
 	return s.direction
 }
 
@@ -95,6 +121,16 @@ func (s *Object) Draw(screen *ebiten.Image, tick uint) {
 	opts.GeoM.Scale(float64(s.scale), float64(s.scale))
 	opts.GeoM.Translate(float64(s.position.X), float64(s.position.Y))
 
+	// draw player with direction
+	if s.ObjType == ObjectPlayer {
+		if s.frames[s.direction] != nil {
+			screen.DrawImage(s.frames[s.direction], opts)
+			return
+		} else {
+			screen.DrawImage(s.img, opts)
+			return
+		}
+	}
 	screen.DrawImage(s.img, opts)
 }
 

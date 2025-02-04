@@ -2,7 +2,6 @@ package assets
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -21,9 +20,8 @@ func Load() *Assets {
 	// Get user ID from global JS
 	fun := js.Global().Get("id")
 	id := fun.Invoke().String()
-	fmt.Println("USER_ID: ", id)
 
-	// userID := "6778d9d1a1a3232f20545d84"
+	// id := "6778d9d1a1a3232f20545d84"
 	// Make get request
 	client := http.Client{}
 	req, err := http.NewRequest("GET", config.Env().SERVER_URL+"/game/wasm/map/primary/"+id, nil)

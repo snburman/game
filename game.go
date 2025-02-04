@@ -49,7 +49,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.Fill(color.Color(color.RGBA{255, 255, 255, 255}))
+	screen.Fill(color.Color(color.White))
 	objects := g.objects.GetAll()
 	for _, o := range objects {
 		object := *o
