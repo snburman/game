@@ -30,22 +30,18 @@ func (p *Player) Update(screen *ebiten.Image, i input.Input, tick uint) error {
 		input.Up: func() {
 			pos.Move(Up, p.Speed())
 			p.SetDirection(Up)
-			p.SetCurrentFrame(FaceUp)
 		},
 		input.Down: func() {
 			pos.Move(Down, p.Speed())
 			p.SetDirection(Down)
-			p.SetCurrentFrame(FaceDown)
 		},
 		input.Left: func() {
 			pos.Move(Left, p.Speed())
 			p.SetDirection(Left)
-			p.SetCurrentFrame(FaceLeft)
 		},
 		input.Right: func() {
 			pos.Move(Right, p.Speed())
 			p.SetDirection(Right)
-			p.SetCurrentFrame(FaceRight)
 		},
 	}
 

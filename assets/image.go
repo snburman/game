@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	PNG         AssetType = "png"
 	Tile        AssetType = "tile"
 	Object      AssetType = "object"
 	PlayerUp    AssetType = "player_up"
