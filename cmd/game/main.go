@@ -55,6 +55,7 @@ func main() {
 		// TODO: Add default player images if none found
 	}
 
+	ebiten.SetScreenTransparent(true)
 	ebiten.SetWindowSize(336, 336)
 	ebiten.SetWindowTitle("Game")
 

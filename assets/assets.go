@@ -22,7 +22,7 @@ func Load() *Assets {
 	id := fun.Invoke().String()
 
 	// id := "6778d9d1a1a3232f20545d84"
-	// Make get request
+	// Make get request to server for primary map
 	client := http.Client{}
 	req, err := http.NewRequest("GET", config.Env().SERVER_URL+"/game/wasm/map/primary/"+id, nil)
 	if err != nil {
