@@ -1,7 +1,7 @@
 package objects
 
 import (
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/snburman/game/input"
 )
 
@@ -12,7 +12,7 @@ type Objecter interface {
 	Direction() Direction
 	SetDirection(Direction)
 	Speed() int
-	Update(screen *ebiten.Image, input input.Input, tick uint) error
+	Update(input input.Input, tick uint) error
 	Draw(screen *ebiten.Image, tick uint)
 }
 

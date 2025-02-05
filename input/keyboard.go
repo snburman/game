@@ -1,6 +1,6 @@
 package input
 
-import "github.com/hajimehoshi/ebiten"
+import "github.com/hajimehoshi/ebiten/v2"
 
 type Keyboard struct {
 	keys map[Key]bool

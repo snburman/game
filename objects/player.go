@@ -1,7 +1,7 @@
 package objects
 
 import (
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/snburman/game/input"
 )
 
@@ -23,7 +23,7 @@ func NewPlayer(obj Object) *Player {
 	}
 }
 
-func (p *Player) Update(screen *ebiten.Image, i input.Input, tick uint) error {
+func (p *Player) Update(i input.Input, tick uint) error {
 	pos := p.Position()
 
 	var f input.InputFunctions = map[input.Key]func(){
@@ -53,7 +53,7 @@ func (p *Player) Update(screen *ebiten.Image, i input.Input, tick uint) error {
 
 	p.SetPosition(pos)
 
-	return p.Object.Update(screen, i, tick)
+	return p.Object.Update(i, tick)
 }
 
 func (p *Player) Draw(screen *ebiten.Image, tick uint) {

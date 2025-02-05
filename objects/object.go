@@ -1,9 +1,11 @@
 package objects
 
 import (
+	"log"
 	"sync"
 
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/snburman/game/assets"
 	"github.com/snburman/game/input"
 )
@@ -28,10 +30,17 @@ type Object struct {
 }
 
 type ObjectOptions struct {
-	Position  Position
-	Direction Direction
-	Speed     int
-	Scale     float64
+	ObjectType ObjectType
+	Position   Position
+	Direction  Direction
+	Speed      int
+	Scale      float64
+}
+
+type FileImage struct {
+	Name string
+	Url  string
+	Opts ObjectOptions
 }
 
 func NewObject(img assets.Image, opts ObjectOptions) *Object {
@@ -67,14 +76,44 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 		scale:     scale,
 	}
 
-	// assign default frames
+	// assign default name and frames
 	if o.ObjType == ObjectPlayer {
+		o.name = "player"
 		o.frames[Up] = img.Image
 		o.frames[Down] = img.Image
 		o.frames[Left] = img.Image
 		o.frames[Right] = img.Image
 	}
 	return o
+}
+
+func NewObjectFromFile(f FileImage) *Object {
+	_img, _, err := ebitenutil.NewImageFromFile("assets/img/" + f.Url)
+	if err != nil {
+		log.Println("Error loading image", f.Url)
+		panic(err)
+	}
+	img := assets.Image{
+		Name:   f.Name,
+		Image:  _img,
+		Width:  _img.Bounds().Dx(),
+		Height: _img.Bounds().Dy(),
+		X:      f.Opts.Position.X,
+		Y:      f.Opts.Position.Y,
+	}
+
+	var t assets.AssetType
+	switch f.Opts.ObjectType {
+	case ObjectTile:
+		t = assets.Tile
+	case ObjectObstacle:
+		t = assets.Object
+	default:
+		t = assets.Tile
+	}
+	img.AssetType = t
+
+	return NewObject(img, f.Opts)
 }
 
 func (s *Object) SetFrame(d Direction, img *ebiten.Image) {
@@ -109,7 +148,7 @@ func (s Object) Speed() int {
 	return s.speed
 }
 
-func (s *Object) Update(screen *ebiten.Image, input input.Input, tick uint) error {
+func (s *Object) Update(input input.Input, tick uint) error {
 
 	return nil
 }

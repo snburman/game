@@ -3,9 +3,7 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/snburman/game"
 	"github.com/snburman/game/assets"
 	"github.com/snburman/game/objects"
@@ -18,14 +16,13 @@ func main() {
 
 	var player *objects.Player
 	for _, img := range gameAssets.Images {
-		fmt.Println(img.AssetType)
 		object := objects.NewObject(img, objects.ObjectOptions{
 			Position: objects.Position{
 				X: img.X,
 				Y: img.Y,
 			},
 			Direction: objects.Right,
-			Scale:     3.5,
+			Scale:     assets.Scale,
 			Speed:     3,
 		})
 		if object.ObjType == objects.ObjectPlayer {
@@ -55,11 +52,25 @@ func main() {
 		// TODO: Add default player images if none found
 	}
 
-	ebiten.SetScreenTransparent(true)
-	ebiten.SetWindowSize(336, 336)
+	// load static objects
+	for _, f := range objects.StaticImages {
+		o := objects.NewObjectFromFile(f)
+		game.Objects().Add(o)
+	}
+
+	// load controls
+	controls := objects.NewControls()
+	for _, o := range controls.Objects() {
+		game.Objects().Add(o)
+	}
+
+	opts := &ebiten.RunGameOptions{
+		ScreenTransparent: true,
+	}
+	ebiten.SetWindowSize(336, 500)
 	ebiten.SetWindowTitle("Game")
 
-	if err := game.Run(); err != nil {
+	if err := game.RunGameWithOptions(opts); err != nil {
 		panic(err)
 	}
 }

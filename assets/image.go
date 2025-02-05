@@ -7,7 +7,7 @@ import (
 	"image/png"
 	"io"
 
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 const (
@@ -47,11 +47,12 @@ func PngBytesFromFile(file io.Reader) ([]byte, error) {
 }
 
 func ImageFromBytes(data []byte) (*ebiten.Image, error) {
-	img, _, err := image.Decode(bytes.NewReader(data))
+	_img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
-	return ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+	img := ebiten.NewImageFromImage(_img)
+	return img, nil
 }
 
 func imageFromPixelData(img Image) (*ebiten.Image, error) {
@@ -68,7 +69,7 @@ func imageFromPixelData(img Image) (*ebiten.Image, error) {
 			})
 		}
 	}
-	eImg, err := ebiten.NewImageFromImage(rect, ebiten.FilterDefault)
+	eImg := ebiten.NewImageFromImage(rect)
 
-	return eImg, err
+	return eImg, nil
 }

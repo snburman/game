@@ -3,7 +3,7 @@ package game
 import (
 	"image/color"
 
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/snburman/game/assets"
 	"github.com/snburman/game/input"
 	"github.com/snburman/game/objects"
@@ -16,6 +16,7 @@ type Game struct {
 	assets   *assets.Assets
 	objects  *objects.ObjectManager
 	keyboard *input.Keyboard
+	controls *objects.Controls
 }
 
 func NewGame() *Game {
@@ -23,10 +24,11 @@ func NewGame() *Game {
 		assets:   assets.Load(),
 		objects:  objects.NewObjectManager(),
 		keyboard: input.NewKeyboard(),
+		controls: objects.NewControls(),
 	}
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 	if g.tick > MAX_TICS {
 		g.tick = 1
 	} else {
@@ -39,7 +41,10 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	objects := g.objects.GetAll()
 	for _, o := range objects {
 		object := *o
-		err := object.Update(screen, g.keyboard, g.tick)
+		if object.Name() == "player" {
+
+		}
+		err := object.Update(g.keyboard, g.tick)
 		if err != nil {
 			return err
 		}
@@ -58,11 +63,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return 336, 336
+	return 336, 500
 }
 
 func (g *Game) Run() error {
 	return ebiten.RunGame(g)
+}
+
+func (g *Game) RunGameWithOptions(opts *ebiten.RunGameOptions) error {
+	return ebiten.RunGameWithOptions(g, opts)
 }
 
 func (g *Game) Assets() *assets.Assets {
@@ -71,4 +80,12 @@ func (g *Game) Assets() *assets.Assets {
 
 func (g *Game) Objects() *objects.ObjectManager {
 	return g.objects
+}
+
+func (g *Game) Keyboard() *input.Keyboard {
+	return g.keyboard
+}
+
+func (g *Game) Controls() *objects.Controls {
+	return g.controls
 }
