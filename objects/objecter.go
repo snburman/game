@@ -5,14 +5,22 @@ import (
 	"github.com/snburman/game/input"
 )
 
+type IGame interface {
+	Objects() *ObjectManager
+	Keyboard() *input.Keyboard
+	Controls() *Controls
+}
+
 type Objecter interface {
 	Name() string
+	ObjType() ObjectType
+	Image() *ebiten.Image
 	Position() Position
 	SetPosition(Position)
 	Direction() Direction
 	SetDirection(Direction)
 	Speed() int
-	Update(input input.Input, tick uint) error
+	Update(g IGame, tick uint) error
 	Draw(screen *ebiten.Image, tick uint)
 }
 
@@ -48,7 +56,15 @@ func (p *Position) Set(x, y, z int) {
 	p.Z = z
 }
 
-func WillCollide(source, destination Object) (top, bottom, left, right bool) {
-	// TODO: Implement collision detection
-	return
+type Breached struct {
+	Min struct {
+		X, Y bool
+	}
+	Max struct {
+		X, Y bool
+	}
+}
+
+func (b *Breached) Get() *Breached {
+	return b
 }

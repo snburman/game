@@ -7,7 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/snburman/game/assets"
-	"github.com/snburman/game/input"
+	"github.com/snburman/game/config"
 )
 
 type ObjectType string
@@ -21,10 +21,11 @@ const (
 type Object struct {
 	name      string
 	img       *ebiten.Image
-	ObjType   ObjectType
+	objType   ObjectType
 	frames    map[Direction]*ebiten.Image
 	position  Position
 	direction Direction
+	breached  Breached
 	speed     int
 	scale     float64
 }
@@ -68,7 +69,7 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 	o := &Object{
 		img:       img.Image,
 		name:      img.Name,
-		ObjType:   t,
+		objType:   t,
 		frames:    map[Direction]*ebiten.Image{},
 		position:  opts.Position,
 		direction: opts.Direction,
@@ -77,7 +78,7 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 	}
 
 	// assign default name and frames
-	if o.ObjType == ObjectPlayer {
+	if o.ObjType() == ObjectPlayer {
 		o.name = "player"
 		o.frames[Up] = img.Image
 		o.frames[Down] = img.Image
@@ -116,61 +117,134 @@ func NewObjectFromFile(f FileImage) *Object {
 	return NewObject(img, f.Opts)
 }
 
-func (s *Object) SetFrame(d Direction, img *ebiten.Image) {
-	s.frames[d] = img
-}
-
-func (s Object) Name() string {
-	return s.name
-}
-
-func (s Object) Image() *ebiten.Image {
-	return s.img
-}
-
-func (s Object) Position() Position {
-	return s.position
-}
-
-func (s *Object) SetPosition(p Position) {
-	s.position = p
-}
-
-func (s *Object) Direction() Direction {
-	return s.direction
-}
-
-func (s *Object) SetDirection(d Direction) {
-	s.direction = d
-}
-
-func (s Object) Speed() int {
-	return s.speed
-}
-
-func (s *Object) Update(input input.Input, tick uint) error {
+func (o *Object) Update(g IGame, tick uint) error {
 
 	return nil
 }
 
-func (s *Object) Draw(screen *ebiten.Image, tick uint) {
+func (o *Object) Draw(screen *ebiten.Image, tick uint) {
 	opts := &ebiten.DrawImageOptions{}
-	//TODO: check for collision
 
-	opts.GeoM.Scale(float64(s.scale), float64(s.scale))
-	opts.GeoM.Translate(float64(s.position.X), float64(s.position.Y))
+	opts.GeoM.Scale(float64(o.scale), float64(o.scale))
+	opts.GeoM.Translate(float64(o.position.X), float64(o.position.Y))
 
 	// draw player with direction
-	if s.ObjType == ObjectPlayer {
-		if s.frames[s.direction] != nil {
-			screen.DrawImage(s.frames[s.direction], opts)
+	if o.ObjType() == ObjectPlayer {
+		if o.frames[o.direction] != nil {
+			screen.DrawImage(o.frames[o.direction], opts)
 			return
 		} else {
-			screen.DrawImage(s.img, opts)
+			screen.DrawImage(o.img, opts)
 			return
 		}
 	}
-	screen.DrawImage(s.img, opts)
+	screen.DrawImage(o.img, opts)
+}
+
+// DetectCollision checks if the object is about to collide with another object
+// and sets the breached flags accordingly
+func (o *Object) DetectObjectCollision(foreign Objecter) {
+	// only check for obstacle collision
+	if foreign.ObjType() != ObjectObstacle {
+		return
+	}
+	// foreign position
+	fLeft := float64(foreign.Position().X)
+	fRight := float64(foreign.Position().X) + (float64(foreign.Image().Bounds().Dx()) * config.Scale)
+	fTop := float64(foreign.Position().Y)
+	fBottom := float64(foreign.Position().Y) + (float64(foreign.Image().Bounds().Dy()) * config.Scale)
+
+	// local position
+	lLeft := float64(o.position.X)
+	lRight := float64(o.position.X) + (float64(o.img.Bounds().Dx()) * config.Scale)
+	lTop := float64(o.position.Y)
+	lBottom := float64(o.position.Y) + (float64(o.img.Bounds().Dy()) * config.Scale)
+	oSpeed := float64(o.speed)
+
+	// approaching from left
+	if (lBottom >= fTop && lTop <= fBottom) && (lRight < fLeft) && (lRight+oSpeed >= fLeft) {
+		o.breached.Max.X = true
+	}
+	// approaching from right
+	if (lBottom >= fTop && lTop <= fBottom) && (lLeft > fRight) && (lLeft-oSpeed <= fRight) {
+		o.breached.Min.X = true
+	}
+	// approaching from top
+	if (lRight >= fLeft && lLeft <= fRight) && (lBottom < fTop) && (lBottom+oSpeed >= fTop) {
+		o.breached.Max.Y = true
+	}
+	// approaching from bottom
+	if (lRight >= fLeft && lLeft <= fRight) && (lTop > fBottom) && (lTop-oSpeed <= fBottom) {
+		o.breached.Min.Y = true
+	}
+}
+
+// DetectScreenCollision checks if object is about to collide with screen boundaries
+func (o *Object) DetectScreenCollision() {
+	// approaching from top
+	if (float64(o.position.Y) + (float64(o.img.Bounds().Dy()) * config.Scale) + float64(o.speed)) > float64(config.ViewPortHeight) {
+		o.breached.Max.Y = true
+	} else {
+		o.breached.Max.Y = false
+	}
+	// approaching from bottom
+	if (o.position.Y - o.speed) < 0 {
+		o.breached.Min.Y = true
+	} else {
+		o.breached.Min.Y = false
+	}
+	// approaching from left
+	if (float64(o.position.X) + (float64(o.img.Bounds().Dx()) * config.Scale) + float64(o.speed)) > float64(config.ViewPortWidth) {
+		o.breached.Max.X = true
+	} else {
+		o.breached.Max.X = false
+	}
+	// approaching from right
+	if (o.position.X - o.speed) < 0 {
+		o.breached.Min.X = true
+	} else {
+		o.breached.Min.X = false
+	}
+}
+
+func (o *Object) SetFrame(d Direction, img *ebiten.Image) {
+	o.frames[d] = img
+}
+
+func (o Object) Name() string {
+	return o.name
+}
+
+func (o Object) ObjType() ObjectType {
+	return o.objType
+}
+
+func (o Object) Image() *ebiten.Image {
+	return o.img
+}
+
+func (o Object) Position() Position {
+	return o.position
+}
+
+func (o *Object) SetPosition(p Position) {
+	o.position = p
+}
+
+func (o Object) Breached() Breached {
+	return o.breached
+}
+
+func (o Object) Direction() Direction {
+	return o.direction
+}
+
+func (o *Object) SetDirection(d Direction) {
+	o.direction = d
+}
+
+func (o Object) Speed() int {
+	return o.speed
 }
 
 type ObjectManager struct {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/snburman/game/assets"
+	"github.com/snburman/game/config"
 	"github.com/snburman/game/input"
 	"github.com/snburman/game/objects"
 )
@@ -38,13 +39,13 @@ func (g *Game) Update() error {
 	// TODO: Update all objects and share updates with server
 
 	g.keyboard.Update()
-	objects := g.objects.GetAll()
-	for _, o := range objects {
+	objs := g.objects.GetAll()
+	for _, o := range objs {
 		object := *o
-		if object.Name() == "player" {
+		if object.ObjType() == objects.ObjectPlayer {
 
 		}
-		err := object.Update(g.keyboard, g.tick)
+		err := object.Update(g, g.tick)
 		if err != nil {
 			return err
 		}
@@ -63,7 +64,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return 336, 500
+	return config.ScreenWidth, config.ScreenHeight
 }
 
 func (g *Game) Run() error {

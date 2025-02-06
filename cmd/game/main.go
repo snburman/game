@@ -6,6 +6,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/snburman/game"
 	"github.com/snburman/game/assets"
+	"github.com/snburman/game/config"
 	"github.com/snburman/game/objects"
 )
 
@@ -22,10 +23,10 @@ func main() {
 				Y: img.Y,
 			},
 			Direction: objects.Right,
-			Scale:     assets.Scale,
+			Scale:     config.Scale,
 			Speed:     3,
 		})
-		if object.ObjType == objects.ObjectPlayer {
+		if object.ObjType() == objects.ObjectPlayer {
 			if player == nil {
 				player = objects.NewPlayer(*object)
 			}
@@ -67,7 +68,7 @@ func main() {
 	opts := &ebiten.RunGameOptions{
 		ScreenTransparent: true,
 	}
-	ebiten.SetWindowSize(336, 500)
+	ebiten.SetWindowSize(config.ScreenWidth, config.ScreenHeight)
 	ebiten.SetWindowTitle("Game")
 
 	if err := game.RunGameWithOptions(opts); err != nil {
