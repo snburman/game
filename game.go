@@ -18,6 +18,7 @@ type Game struct {
 	objects  *objects.ObjectManager
 	keyboard *input.Keyboard
 	controls *objects.Controls
+	player   objects.Objecter
 }
 
 func NewGame() *Game {
@@ -30,7 +31,7 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
-	if g.tick > MAX_TICS {
+	if g.tick == MAX_TICS {
 		g.tick = 1
 	} else {
 		g.tick++
@@ -38,7 +39,6 @@ func (g *Game) Update() error {
 
 	// TODO: Update all objects and share updates with server
 
-	g.keyboard.Update()
 	objs := g.objects.GetAll()
 	for _, o := range objs {
 		object := *o
@@ -50,7 +50,9 @@ func (g *Game) Update() error {
 			return err
 		}
 	}
-
+	g.keyboard.Update()
+	g.controls.Update(g, g.tick)
+	g.Player().Update(g, g.tick)
 	return nil
 }
 
@@ -61,6 +63,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		object := *o
 		object.Draw(screen, g.tick)
 	}
+	for _, o := range g.controls.Objects() {
+		object := *o
+		object.Draw(screen, g.tick)
+	}
+	g.Player().Draw(screen, g.tick)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -81,6 +88,14 @@ func (g *Game) Assets() *assets.Assets {
 
 func (g *Game) Objects() *objects.ObjectManager {
 	return g.objects
+}
+
+func (g *Game) Player() objects.Objecter {
+	return g.player
+}
+
+func (g *Game) SetPlayer(player objects.Objecter) {
+	g.player = player
 }
 
 func (g *Game) Keyboard() *input.Keyboard {

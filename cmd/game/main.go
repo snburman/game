@@ -48,7 +48,7 @@ func main() {
 		game.Objects().Add(object)
 	}
 	if player != nil {
-		game.Objects().Add(player)
+		game.SetPlayer(player)
 	} else {
 		// TODO: Add default player images if none found
 	}
@@ -56,12 +56,6 @@ func main() {
 	// load static objects
 	for _, f := range objects.StaticImages {
 		o := objects.NewObjectFromFile(f)
-		game.Objects().Add(o)
-	}
-
-	// load controls
-	controls := objects.NewControls()
-	for _, o := range controls.Objects() {
 		game.Objects().Add(o)
 	}
 

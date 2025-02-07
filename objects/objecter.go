@@ -7,6 +7,7 @@ import (
 
 type IGame interface {
 	Objects() *ObjectManager
+	Player() Objecter
 	Keyboard() *input.Keyboard
 	Controls() *Controls
 }
@@ -15,8 +16,9 @@ type Objecter interface {
 	Name() string
 	ObjType() ObjectType
 	Image() *ebiten.Image
-	Position() Position
+	Position() *Position
 	SetPosition(Position)
+	Breached() Breached
 	Direction() Direction
 	SetDirection(Direction)
 	Speed() int

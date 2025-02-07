@@ -10,9 +10,11 @@ type Player struct {
 }
 
 func NewPlayer(obj Object) *Player {
-	return &Player{
+	p := &Player{
 		Object: obj,
 	}
+	p.name = "player"
+	return p
 }
 
 func (p *Player) Update(g IGame, tick uint) error {
@@ -24,32 +26,28 @@ func (p *Player) Update(g IGame, tick uint) error {
 	pos := p.Position()
 	var f input.InputFunctions = map[input.Key]func(){
 		input.Up: func() {
-			if p.Breached().Min.Y {
-				return
+			if !p.Breached().Min.Y {
+				pos.Move(Up, p.Speed())
+				p.SetDirection(Up)
 			}
-			pos.Move(Up, p.Speed())
-			p.SetDirection(Up)
 		},
 		input.Down: func() {
-			if p.Breached().Max.Y {
-				return
+			if !p.Breached().Max.Y {
+				pos.Move(Down, p.Speed())
+				p.SetDirection(Down)
 			}
-			pos.Move(Down, p.Speed())
-			p.SetDirection(Down)
 		},
 		input.Left: func() {
-			if p.Breached().Min.X {
-				return
+			if !p.Breached().Min.X {
+				pos.Move(Left, p.Speed())
+				p.SetDirection(Left)
 			}
-			pos.Move(Left, p.Speed())
-			p.SetDirection(Left)
 		},
 		input.Right: func() {
-			if p.Breached().Max.X {
-				return
+			if !p.Breached().Max.X {
+				pos.Move(Right, p.Speed())
+				p.SetDirection(Right)
 			}
-			pos.Move(Right, p.Speed())
-			p.SetDirection(Right)
 		},
 	}
 
@@ -59,7 +57,7 @@ func (p *Player) Update(g IGame, tick uint) error {
 		}
 	}
 
-	p.SetPosition(pos)
+	p.SetPosition(*pos)
 
 	return p.Object.Update(g, tick)
 }

@@ -1,8 +1,11 @@
 package objects
 
 import (
+	"fmt"
 	"log"
 	"sync"
+
+	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -89,7 +92,8 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 }
 
 func NewObjectFromFile(f FileImage) *Object {
-	_img, _, err := ebitenutil.NewImageFromFile("assets/img/" + f.Url)
+	_img, _, err := ebitenutil.NewImageFromFile("../assets/img/" + f.Url)
+	// _img, _, err := ebitenutil.NewImageFromFile("../assets/img/" + f.Url)
 	if err != nil {
 		log.Println("Error loading image", f.Url)
 		panic(err)
@@ -207,6 +211,24 @@ func (o *Object) DetectScreenCollision() {
 	}
 }
 
+func (o *Object) IsPressed(tID ebiten.TouchID) bool {
+	touchX := float64(Touches[tID].CurrX)
+	touchY := float64(Touches[tID].CurrY)
+	top := float64(o.position.Y)
+	bottom := float64(o.position.Y) + (float64(o.img.Bounds().Dy()))
+	left := float64(o.position.X)
+	right := float64(o.position.X) + (float64(o.img.Bounds().Dx()))
+
+	if touchX != float64(0) || touchY != float64(0) {
+		fmt.Println("Touch", touchX, touchY)
+		fmt.Println("Object", top, bottom, left, right)
+	}
+	if (touchX >= left && touchX <= right) && (touchY >= top && touchY <= bottom) {
+		return true
+	}
+	return false
+}
+
 func (o *Object) SetFrame(d Direction, img *ebiten.Image) {
 	o.frames[d] = img
 }
@@ -223,8 +245,8 @@ func (o Object) Image() *ebiten.Image {
 	return o.img
 }
 
-func (o Object) Position() Position {
-	return o.position
+func (o *Object) Position() *Position {
+	return &o.position
 }
 
 func (o *Object) SetPosition(p Position) {
@@ -262,6 +284,17 @@ func (om *ObjectManager) Add(s Objecter) {
 	om.mu.Lock()
 	defer om.mu.Unlock()
 	om.Objects = append(om.Objects, &s)
+}
+
+func (om *ObjectManager) Get(name string) Objecter {
+	om.mu.Lock()
+	defer om.mu.Unlock()
+	for _, o := range om.Objects {
+		if (*o).Name() == name {
+			return *o
+		}
+	}
+	return nil
 }
 
 func (om *ObjectManager) GetAll() []*Objecter {
