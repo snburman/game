@@ -1,12 +1,12 @@
 package objects
 
 import (
-	"fmt"
 	"log"
 	"sync"
 
 	_ "image/png"
 
+	"github.com/google/uuid"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/snburman/game/assets"
@@ -22,6 +22,7 @@ const (
 )
 
 type Object struct {
+	ID        string
 	name      string
 	img       *ebiten.Image
 	objType   ObjectType
@@ -70,6 +71,7 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 	}
 
 	o := &Object{
+		ID:        uuid.New().String(),
 		img:       img.Image,
 		name:      img.Name,
 		objType:   t,
@@ -92,8 +94,11 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 }
 
 func NewObjectFromFile(f FileImage) *Object {
+	// debug
+	// _img, _, err := ebitenutil.NewImageFromFile("assets/img/" + f.Url)
+	// build
 	_img, _, err := ebitenutil.NewImageFromFile("../assets/img/" + f.Url)
-	// _img, _, err := ebitenutil.NewImageFromFile("../assets/img/" + f.Url)
+
 	if err != nil {
 		log.Println("Error loading image", f.Url)
 		panic(err)
@@ -165,14 +170,6 @@ func (o *Object) DetectObjectCollision(foreign Objecter) {
 	lBottom := float64(o.position.Y) + (float64(o.img.Bounds().Dy()) * config.Scale)
 	oSpeed := float64(o.speed)
 
-	// approaching from left
-	if (lBottom >= fTop && lTop <= fBottom) && (lRight < fLeft) && (lRight+oSpeed >= fLeft) {
-		o.breached.Max.X = true
-	}
-	// approaching from right
-	if (lBottom >= fTop && lTop <= fBottom) && (lLeft > fRight) && (lLeft-oSpeed <= fRight) {
-		o.breached.Min.X = true
-	}
 	// approaching from top
 	if (lRight >= fLeft && lLeft <= fRight) && (lBottom < fTop) && (lBottom+oSpeed >= fTop) {
 		o.breached.Max.Y = true
@@ -180,6 +177,14 @@ func (o *Object) DetectObjectCollision(foreign Objecter) {
 	// approaching from bottom
 	if (lRight >= fLeft && lLeft <= fRight) && (lTop > fBottom) && (lTop-oSpeed <= fBottom) {
 		o.breached.Min.Y = true
+	}
+	// approaching from left
+	if (lBottom >= fTop && lTop <= fBottom) && (lRight < fLeft) && (lRight+oSpeed >= fLeft) {
+		o.breached.Max.X = true
+	}
+	// approaching from right
+	if (lBottom >= fTop && lTop <= fBottom) && (lLeft > fRight) && (lLeft-oSpeed <= fRight) {
+		o.breached.Min.X = true
 	}
 }
 
@@ -211,18 +216,18 @@ func (o *Object) DetectScreenCollision() {
 	}
 }
 
-func (o *Object) IsPressed(tID ebiten.TouchID) bool {
-	touchX := float64(Touches[tID].CurrX)
-	touchY := float64(Touches[tID].CurrY)
+func (o *Object) IsPressed(x, y int) bool {
+	// touch coordinates
+	touchX := float64(x)
+	touchY := float64(y)
+
+	// object borders
 	top := float64(o.position.Y)
 	bottom := float64(o.position.Y) + (float64(o.img.Bounds().Dy()))
 	left := float64(o.position.X)
 	right := float64(o.position.X) + (float64(o.img.Bounds().Dx()))
 
-	if touchX != float64(0) || touchY != float64(0) {
-		fmt.Println("Touch", touchX, touchY)
-		fmt.Println("Object", top, bottom, left, right)
-	}
+	// if touch is within object borders
 	if (touchX >= left && touchX <= right) && (touchY >= top && touchY <= bottom) {
 		return true
 	}
@@ -267,6 +272,10 @@ func (o *Object) SetDirection(d Direction) {
 
 func (o Object) Speed() int {
 	return o.speed
+}
+
+func (o *Object) SetSpeed(s int) {
+	o.speed = s
 }
 
 type ObjectManager struct {

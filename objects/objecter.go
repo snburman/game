@@ -2,13 +2,12 @@ package objects
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/snburman/game/input"
 )
 
 type IGame interface {
 	Objects() *ObjectManager
 	Player() Objecter
-	Keyboard() *input.Keyboard
+	Keyboard() *Keyboard
 	Controls() *Controls
 }
 
@@ -22,6 +21,7 @@ type Objecter interface {
 	Direction() Direction
 	SetDirection(Direction)
 	Speed() int
+	SetSpeed(int)
 	Update(g IGame, tick uint) error
 	Draw(screen *ebiten.Image, tick uint)
 }

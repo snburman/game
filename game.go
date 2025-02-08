@@ -6,7 +6,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/snburman/game/assets"
 	"github.com/snburman/game/config"
-	"github.com/snburman/game/input"
 	"github.com/snburman/game/objects"
 )
 
@@ -16,7 +15,7 @@ type Game struct {
 	tick     uint
 	assets   *assets.Assets
 	objects  *objects.ObjectManager
-	keyboard *input.Keyboard
+	keyboard *objects.Keyboard
 	controls *objects.Controls
 	player   objects.Objecter
 }
@@ -25,7 +24,7 @@ func NewGame() *Game {
 	return &Game{
 		assets:   assets.Load(),
 		objects:  objects.NewObjectManager(),
-		keyboard: input.NewKeyboard(),
+		keyboard: objects.NewKeyboard(),
 		controls: objects.NewControls(),
 	}
 }
@@ -50,14 +49,16 @@ func (g *Game) Update() error {
 			return err
 		}
 	}
-	g.keyboard.Update()
 	g.controls.Update(g, g.tick)
+	g.keyboard.Update(g)
 	g.Player().Update(g, g.tick)
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.Fill(color.Color(color.White))
+	screen.Fill(color.Color(color.RGBA{
+		175, 175, 178, 255,
+	}))
 	objects := g.objects.GetAll()
 	for _, o := range objects {
 		object := *o
@@ -98,7 +99,7 @@ func (g *Game) SetPlayer(player objects.Objecter) {
 	g.player = player
 }
 
-func (g *Game) Keyboard() *input.Keyboard {
+func (g *Game) Keyboard() *objects.Keyboard {
 	return g.keyboard
 }
 

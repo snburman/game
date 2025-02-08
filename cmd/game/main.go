@@ -12,7 +12,6 @@ import (
 
 func main() {
 	game := game.NewGame()
-
 	gameAssets := game.Assets()
 
 	var player *objects.Player
@@ -59,12 +58,12 @@ func main() {
 		game.Objects().Add(o)
 	}
 
-	opts := &ebiten.RunGameOptions{
-		ScreenTransparent: true,
-	}
 	ebiten.SetWindowSize(config.ScreenWidth, config.ScreenHeight)
 	ebiten.SetWindowTitle("Game")
 
+	opts := &ebiten.RunGameOptions{
+		ScreenTransparent: true,
+	}
 	if err := game.RunGameWithOptions(opts); err != nil {
 		panic(err)
 	}

@@ -2,7 +2,7 @@ package objects
 
 var StaticImages = []FileImage{
 	// {
-	// 	Url: "amethyst.png",
+	// 	Url: ".png",
 	// 	Opts: ObjectOptions{
 	// 		ObjectType: ObjectTile,
 	// 		Position: Position{
