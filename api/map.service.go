@@ -47,7 +47,6 @@ func (ms *MapService) GetPrimaryMap() (assets.Map[[]assets.Image], error) {
 		return _map, res.Error
 	}
 
-	//TODO: may need to be var
 	err := json.Unmarshal(res.Body, &_map)
 	if err != nil {
 		return _map, err
@@ -111,13 +110,6 @@ func (ms *MapService) ImagesFromMap(_map assets.Map[[]assets.Image]) []assets.Im
 		}
 	}
 	allImages = append(allImages, nonTiles...)
-
-	//TODO: REMOVE THIS AFTER TESTING
-	_map.Portals = append(_map.Portals, assets.Portal{
-		MapID: "6794a98e48815ec0dd9c19d0",
-		X:     0,
-		Y:     0,
-	})
 
 	// add portals as images
 	for _, portal := range _map.Portals {
