@@ -1,6 +1,6 @@
 package config
 
-// Env() returns Vars struct of environment variables
+// Env returns Vars struct of environment variables
 func Env() Vars {
 	// if flag.Lookup("test.v") == nil {
 	// 	err := godotenv.Load()

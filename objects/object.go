@@ -19,10 +19,11 @@ const (
 	ObjectTile     ObjectType = "tile"
 	ObjectObstacle ObjectType = "obstacle"
 	ObjectPlayer   ObjectType = "player"
+	ObjectPortal   ObjectType = "portal"
 )
 
 type Object struct {
-	ID        string
+	id        string
 	name      string
 	img       *ebiten.Image
 	objType   ObjectType
@@ -63,6 +64,8 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 		t = ObjectTile
 	case assets.Object:
 		t = ObjectObstacle
+	case assets.MapPortal:
+		t = ObjectPortal
 	case assets.PlayerUp, assets.PlayerDown, assets.PlayerLeft, assets.PlayerRight:
 		t = ObjectPlayer
 	}
@@ -70,8 +73,18 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 		t = ObjectTile
 	}
 
+	// set id for portal
+	// only portals need fixed ids to images
+	// other objects have random ids which can be used to specify unique objects
+	var id string
+	if t == ObjectPortal {
+		id = img.ID
+	} else {
+		id = uuid.New().String()
+	}
+
 	o := &Object{
-		ID:        uuid.New().String(),
+		id:        id,
 		img:       img.Image,
 		name:      img.Name,
 		objType:   t,
@@ -95,9 +108,9 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 
 func NewObjectFromFile(f FileImage) *Object {
 	// debug
-	// _img, _, err := ebitenutil.NewImageFromFile("assets/img/" + f.Url)
+	_img, _, err := ebitenutil.NewImageFromFile("assets/img/" + f.Url)
 	// build
-	_img, _, err := ebitenutil.NewImageFromFile("../assets/img/" + f.Url)
+	// _img, _, err := ebitenutil.NewImageFromFile("../assets/img/" + f.Url)
 
 	if err != nil {
 		log.Println("Error loading image", f.Url)
@@ -152,10 +165,10 @@ func (o *Object) Draw(screen *ebiten.Image, tick uint) {
 
 // DetectCollision checks if the object is about to collide with another object
 // and sets the breached flags accordingly
-func (o *Object) DetectObjectCollision(foreign Objecter) {
+func (o *Object) DetectObjectCollision(foreign Objecter) bool {
 	// only check for obstacle collision
-	if foreign.ObjType() != ObjectObstacle {
-		return
+	if foreign.ObjType() == ObjectTile {
+		return false
 	}
 	// foreign position
 	fLeft := float64(foreign.Position().X)
@@ -186,6 +199,31 @@ func (o *Object) DetectObjectCollision(foreign Objecter) {
 	if (lBottom >= fTop && lTop <= fBottom) && (lLeft > fRight) && (lLeft-oSpeed <= fRight) {
 		o.breached.Min.X = true
 	}
+	return o.breached.Max.X || o.breached.Min.X || o.breached.Max.Y || o.breached.Min.Y
+}
+
+func (o *Object) IsCollided(foreign Objecter) bool {
+	// only check for obstacle collision
+	if foreign.ObjType() == ObjectTile {
+		return false
+	}
+	// foreign position
+	fLeft := float64(foreign.Position().X)
+	fRight := float64(foreign.Position().X) + (float64(foreign.Image().Bounds().Dx()) * config.Scale)
+	fTop := float64(foreign.Position().Y)
+	fBottom := float64(foreign.Position().Y) + (float64(foreign.Image().Bounds().Dy()) * config.Scale)
+
+	// local position
+	lLeft := float64(o.position.X)
+	lRight := float64(o.position.X) + (float64(o.img.Bounds().Dx()) * config.Scale)
+	lTop := float64(o.position.Y)
+	lBottom := float64(o.position.Y) + (float64(o.img.Bounds().Dy()) * config.Scale)
+
+	// check for collision
+	if (lRight >= fLeft && lLeft <= fRight) && (lBottom >= fTop && lTop <= fBottom) {
+		return true
+	}
+	return false
 }
 
 // DetectScreenCollision checks if object is about to collide with screen boundaries
@@ -216,6 +254,7 @@ func (o *Object) DetectScreenCollision() {
 	}
 }
 
+// IsPressed checks if object is pressed by touch at x, y coordinates
 func (o *Object) IsPressed(x, y int) bool {
 	// touch coordinates
 	touchX := float64(x)
@@ -234,12 +273,16 @@ func (o *Object) IsPressed(x, y int) bool {
 	return false
 }
 
-func (o *Object) SetFrame(d Direction, img *ebiten.Image) {
-	o.frames[d] = img
+func (o Object) ID() string {
+	return o.id
 }
 
 func (o Object) Name() string {
 	return o.name
+}
+
+func (o *Object) SetFrame(d Direction, img *ebiten.Image) {
+	o.frames[d] = img
 }
 
 func (o Object) ObjType() ObjectType {
@@ -280,40 +323,46 @@ func (o *Object) SetSpeed(s int) {
 
 type ObjectManager struct {
 	mu      sync.Mutex
-	Objects []*Objecter
+	Objects []Objecter
 }
 
 func NewObjectManager() *ObjectManager {
 	return &ObjectManager{
-		Objects: []*Objecter{},
+		Objects: []Objecter{},
 	}
 }
 
 func (om *ObjectManager) Add(s Objecter) {
 	om.mu.Lock()
 	defer om.mu.Unlock()
-	om.Objects = append(om.Objects, &s)
+	om.Objects = append(om.Objects, s)
 }
 
 func (om *ObjectManager) Get(name string) Objecter {
 	om.mu.Lock()
 	defer om.mu.Unlock()
 	for _, o := range om.Objects {
-		if (*o).Name() == name {
-			return *o
+		if (o).Name() == name {
+			return o
 		}
 	}
 	return nil
 }
 
-func (om *ObjectManager) GetAll() []*Objecter {
+func (om *ObjectManager) GetAll() []Objecter {
 	om.mu.Lock()
 	defer om.mu.Unlock()
 	return om.Objects
 }
 
+func (om *ObjectManager) SetAll(objs []Objecter) {
+	om.mu.Lock()
+	defer om.mu.Unlock()
+	om.Objects = objs
+}
+
 func (om *ObjectManager) RemoveAll() {
 	om.mu.Lock()
 	defer om.mu.Unlock()
-	om.Objects = []*Objecter{}
+	om.Objects = []Objecter{}
 }

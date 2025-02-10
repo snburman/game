@@ -7,6 +7,7 @@ const (
 	Down
 	Left
 	Right
+	Space
 )
 
 type Input interface {

@@ -20,33 +20,40 @@ func NewPlayer(obj Object) *Player {
 func (p *Player) Update(g IGame, tick uint) error {
 	p.DetectScreenCollision()
 	for _, o := range g.Objects().GetAll() {
-		p.DetectObjectCollision(*o)
+		if o.ObjType() == ObjectPortal {
+			if p.IsCollided(o) && g.CurrentMap().ID.Hex() != o.ID() {
+				// if map does not exist, nothing will happen
+				g.LoadMap(o.ID())
+			}
+			continue
+		}
+		p.DetectObjectCollision(o)
 	}
 
 	pos := p.Position()
 	var f input.InputFunctions = map[input.Key]func(){
 		input.Up: func() {
+			p.SetDirection(Up)
 			if !p.Breached().Min.Y {
 				pos.Move(Up, p.Speed())
-				p.SetDirection(Up)
 			}
 		},
 		input.Down: func() {
+			p.SetDirection(Down)
 			if !p.Breached().Max.Y {
 				pos.Move(Down, p.Speed())
-				p.SetDirection(Down)
 			}
 		},
 		input.Left: func() {
+			p.SetDirection(Left)
 			if !p.Breached().Min.X {
 				pos.Move(Left, p.Speed())
-				p.SetDirection(Left)
 			}
 		},
 		input.Right: func() {
+			p.SetDirection(Right)
 			if !p.Breached().Max.X {
 				pos.Move(Right, p.Speed())
-				p.SetDirection(Right)
 			}
 		},
 	}
@@ -56,8 +63,6 @@ func (p *Player) Update(g IGame, tick uint) error {
 			fn()
 		}
 	}
-
-	p.SetPosition(*pos)
 
 	return p.Object.Update(g, tick)
 }
