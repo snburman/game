@@ -107,10 +107,14 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 }
 
 func NewObjectFromFile(f FileImage) *Object {
-	// debug
-	_img, _, err := ebitenutil.NewImageFromFile("assets/img/" + f.Url)
-	// build
-	// _img, _, err := ebitenutil.NewImageFromFile("../assets/img/" + f.Url)
+	var _img *ebiten.Image
+	var err error
+	switch config.Env().ENVIROMENT {
+	case "debug":
+		_img, _, err = ebitenutil.NewImageFromFile("assets/img/" + f.Url)
+	case "build":
+		_img, _, err = ebitenutil.NewImageFromFile("../assets/img/" + f.Url)
+	}
 
 	if err != nil {
 		log.Println("Error loading image", f.Url)
