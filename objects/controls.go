@@ -153,23 +153,23 @@ func (c *Controls) Update(g IGame, tick uint) error {
 				case "bButton":
 					player.SetSpeed(config.RunSpeed)
 				case "upButton":
+					player.SetDirection(Up)
 					if !player.Breached().Min.Y {
-						player.SetDirection(Up)
 						pos.Move(Up, player.Speed())
 					}
 				case "downButton":
+					player.SetDirection(Down)
 					if !player.Breached().Max.Y {
-						player.SetDirection(Down)
 						pos.Move(Down, player.Speed())
 					}
 				case "leftButton":
+					player.SetDirection(Left)
 					if !player.Breached().Min.X {
-						player.SetDirection(Left)
 						pos.Move(Left, player.Speed())
 					}
 				case "rightButton":
+					player.SetDirection(Right)
 					if !player.Breached().Max.X {
-						player.SetDirection(Right)
 						pos.Move(Right, player.Speed())
 					}
 				}

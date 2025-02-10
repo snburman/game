@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/snburman/game/api"
 	"github.com/snburman/game/assets"
 	"github.com/snburman/game/config"
 	"github.com/snburman/game/objects"
@@ -12,21 +13,37 @@ import (
 const MAX_TICS = 10000
 
 type Game struct {
-	tick     uint
-	assets   *assets.Assets
-	objects  *objects.ObjectManager
-	keyboard *objects.Keyboard
-	controls *objects.Controls
-	player   objects.Objecter
+	tick       uint
+	assets     *assets.Assets
+	objects    *objects.ObjectManager
+	mapService *api.MapService
+	keyboard   *objects.Keyboard
+	controls   *objects.Controls
+	player     objects.Objecter
 }
 
 func NewGame() *Game {
-	return &Game{
-		assets:   assets.Load(),
-		objects:  objects.NewObjectManager(),
-		keyboard: objects.NewKeyboard(),
-		controls: objects.NewControls(),
+	g := &Game{
+		assets:     &assets.Assets{},
+		objects:    objects.NewObjectManager(),
+		mapService: api.NewMapService(api.ApiClient),
+		keyboard:   objects.NewKeyboard(),
+		controls:   objects.NewControls(),
 	}
+	imgs := g.mapService.ImagesFromMap(g.mapService.PrimaryMap())
+	g.assets.Images = imgs
+	objs, player := objects.ObjectersFromImages(imgs)
+	g.Objects().SetAll(objs)
+	if player != nil {
+		g.SetPlayer(player)
+	}
+
+	// load static objects
+	for _, f := range objects.StaticImages {
+		o := objects.NewObjectFromFile(f)
+		g.Objects().Add(o)
+	}
+	return g
 }
 
 func (g *Game) Update() error {
@@ -40,7 +57,7 @@ func (g *Game) Update() error {
 
 	objs := g.objects.GetAll()
 	for _, o := range objs {
-		object := *o
+		object := o
 		if object.ObjType() == objects.ObjectPlayer {
 
 		}
@@ -61,14 +78,37 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}))
 	objects := g.objects.GetAll()
 	for _, o := range objects {
-		object := *o
+		object := o
 		object.Draw(screen, g.tick)
 	}
 	for _, o := range g.controls.Objects() {
-		object := *o
+		object := o
 		object.Draw(screen, g.tick)
 	}
 	g.Player().Draw(screen, g.tick)
+}
+
+func (g *Game) LoadMap(id string) error {
+	_map, err := g.mapService.GetMapByID(id)
+	if err != nil {
+		return err
+	}
+	// set map
+	g.mapService.SetCurrentMap(_map)
+	// set images
+	images := g.mapService.CurrentImages()
+	g.assets.Images = images
+	// set objects
+	objs, player := objects.ObjectersFromImages(images)
+	g.objects.SetAll(objs)
+	if player != nil {
+		g.SetPlayer(player)
+	}
+	return nil
+}
+
+func (g *Game) CurrentMap() assets.Map[[]assets.Image] {
+	return g.mapService.CurrentMap()
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
