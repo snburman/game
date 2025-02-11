@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/snburman/game/assets"
 	"github.com/snburman/game/config"
+	"github.com/snburman/game/models"
 )
 
 type ObjectType string
@@ -49,7 +49,7 @@ type FileImage struct {
 	Opts ObjectOptions
 }
 
-func NewObject(img assets.Image, opts ObjectOptions) *Object {
+func NewObject(img models.Image, opts ObjectOptions) *Object {
 	scale := 1.0
 	if opts.Scale != 0 {
 		scale = opts.Scale
@@ -60,13 +60,13 @@ func NewObject(img assets.Image, opts ObjectOptions) *Object {
 	}
 	var t ObjectType
 	switch img.AssetType {
-	case assets.Tile:
+	case models.Tile:
 		t = ObjectTile
-	case assets.Object:
+	case models.Object:
 		t = ObjectObstacle
-	case assets.MapPortal:
+	case models.MapPortal:
 		t = ObjectPortal
-	case assets.PlayerUp, assets.PlayerDown, assets.PlayerLeft, assets.PlayerRight:
+	case models.PlayerUp, models.PlayerDown, models.PlayerLeft, models.PlayerRight:
 		t = ObjectPlayer
 	}
 	if t == "" {
@@ -120,7 +120,7 @@ func NewObjectFromFile(f FileImage) *Object {
 		log.Println("Error loading image", f.Url)
 		panic(err)
 	}
-	img := assets.Image{
+	img := models.Image{
 		Name:   f.Name,
 		Image:  _img,
 		Width:  _img.Bounds().Dx(),
@@ -129,14 +129,14 @@ func NewObjectFromFile(f FileImage) *Object {
 		Y:      f.Opts.Position.Y,
 	}
 
-	var t assets.AssetType
+	var t models.AssetType
 	switch f.Opts.ObjectType {
 	case ObjectTile:
-		t = assets.Tile
+		t = models.Tile
 	case ObjectObstacle:
-		t = assets.Object
+		t = models.Object
 	default:
-		t = assets.Tile
+		t = models.Tile
 	}
 	img.AssetType = t
 

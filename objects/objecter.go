@@ -2,15 +2,16 @@ package objects
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/snburman/game/assets"
 	"github.com/snburman/game/config"
+	"github.com/snburman/game/models"
 )
 
 type IGame interface {
 	Objects() *ObjectManager
+	CurrentMap() models.Map[[]models.Image]
 	LoadMap(id string) error
-	CurrentMap() assets.Map[[]assets.Image]
-	Player() Objecter
+	Player() *Player
+	SetPlayer(Objecter)
 	Keyboard() *Keyboard
 	Controls() *Controls
 }
@@ -31,9 +32,10 @@ type Objecter interface {
 	Draw(screen *ebiten.Image, tick uint)
 }
 
-// ObjectersFromImages creates a slice of Objecter from a slice of assets.Image
+// ObjectersFromImages creates a slice of Objecter from a slice of models.Image
 // and returns a pointer to the player object if one exists
-func ObjectersFromImages(images []assets.Image) (objs []Objecter, player *Player) {
+func ObjectersFromImages(images []models.Image) (objs []Objecter, player Objecter) {
+	var p *Player
 	for _, img := range images {
 		object := NewObject(img, ObjectOptions{
 			Position: Position{
@@ -45,27 +47,27 @@ func ObjectersFromImages(images []assets.Image) (objs []Objecter, player *Player
 			Speed:     config.WalkSpeed,
 		})
 		if object.ObjType() == ObjectPlayer {
-			if player == nil {
-				player = NewPlayer(*object)
+			if p == nil {
+				p = NewPlayer(*object)
 			}
 			switch img.AssetType {
-			case assets.PlayerUp:
-				player.SetFrame(Up, object.Image())
+			case models.PlayerUp:
+				p.SetFrame(Up, object.Image())
 				continue
-			case assets.PlayerDown:
-				player.SetFrame(Down, object.Image())
+			case models.PlayerDown:
+				p.SetFrame(Down, object.Image())
 				continue
-			case assets.PlayerLeft:
-				player.SetFrame(Left, object.Image())
+			case models.PlayerLeft:
+				p.SetFrame(Left, object.Image())
 				continue
-			case assets.PlayerRight:
-				player.SetFrame(Right, object.Image())
+			case models.PlayerRight:
+				p.SetFrame(Right, object.Image())
 				continue
 			}
 		}
 		objs = append(objs, object)
 	}
-	return objs, player
+	return objs, p
 }
 
 type Direction int
