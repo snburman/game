@@ -53,7 +53,6 @@ func (a *API) Request(method string, url string) Response {
 	req.Header.Add("CLIENT_SECRET", config.Env().CLIENT_SECRET)
 	res, err := client.Do(req)
 	if err != nil {
-		res.Body.Close()
 		return Response{
 			Success: false,
 			Status:  res.StatusCode,

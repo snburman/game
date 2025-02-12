@@ -18,7 +18,7 @@ type Game struct {
 	mapService *api.MapService
 	keyboard   *objects.Keyboard
 	controls   *objects.Controls
-	player     objects.Objecter
+	player     *objects.Player
 }
 
 func NewGame() *Game {
@@ -27,7 +27,7 @@ func NewGame() *Game {
 		keyboard: objects.NewKeyboard(),
 		controls: objects.NewControls(),
 	}
-	ms := api.NewMapService(api.ApiClient, g)
+	ms := api.NewMapService(api.ApiClient)
 	g.mapService = ms
 
 	// load static images/objects
@@ -79,13 +79,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) LoadMap(id string) error {
-	// fetch map by id
-	_map, err := g.mapService.GetMapByID(id)
+	// load map
+	err := g.mapService.LoadMap(id)
 	if err != nil {
 		return err
 	}
-	// set map
-	g.mapService.SetCurrentMap(g, _map)
+	// set player
+	g.SetPlayer(g.mapService.Player())
+	g.objects.SetAll(g.mapService.CurrentObjects())
 	return nil
 }
 
@@ -110,14 +111,10 @@ func (g *Game) Objects() *objects.ObjectManager {
 }
 
 func (g *Game) Player() *objects.Player {
-	player, ok := g.player.(*objects.Player)
-	if !ok {
-		panic("player must be a pointer to Player")
-	}
-	return player
+	return g.player
 }
 
-func (g *Game) SetPlayer(player objects.Objecter) {
+func (g *Game) SetPlayer(player *objects.Player) {
 	if player.ObjType() != objects.ObjectPlayer {
 		panic("player must have ObjectType: ObjectPlayer")
 	}

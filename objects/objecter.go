@@ -11,7 +11,7 @@ type IGame interface {
 	CurrentMap() models.Map[[]models.Image]
 	LoadMap(id string) error
 	Player() *Player
-	SetPlayer(Objecter)
+	SetPlayer(*Player)
 	Keyboard() *Keyboard
 	Controls() *Controls
 }

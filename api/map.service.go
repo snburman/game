@@ -12,50 +12,49 @@ import (
 )
 
 type MapService struct {
-	api           *API
-	primaryMap    models.Map[[]models.Image]
-	currentMap    models.Map[[]models.Image]
-	currentImages []models.Image
+	api            *API
+	player         *objects.Player
+	primaryMap     models.Map[[]models.Image]
+	primaryObjects []objects.Objecter
+	currentMap     models.Map[[]models.Image]
+	currentObjects []objects.Objecter
+	portalMaps     map[string]models.Map[[]models.Image]
+	portalObjects  map[string][]objects.Objecter
 }
 
-func NewMapService(api *API, g objects.IGame) *MapService {
+func NewMapService(api *API) *MapService {
 	ms := &MapService{
-		api:           api,
-		primaryMap:    models.Map[[]models.Image]{},
-		currentMap:    models.Map[[]models.Image]{},
-		currentImages: []models.Image{},
+		api:        api,
+		primaryMap: models.Map[[]models.Image]{},
+		currentMap: models.Map[[]models.Image]{},
+		portalMaps: map[string]models.Map[[]models.Image]{},
 	}
-	_, err := ms.GetPrimaryMap()
+	err := ms.GetPrimaryMap()
 	if err != nil {
 		panic(err)
 	}
-	ms.SetCurrentMap(g, ms.primaryMap)
 	return ms
 }
 
-func (ms *MapService) PrimaryMap() models.Map[[]models.Image] {
-	return ms.primaryMap
-}
-
 // GetPrimaryMap makes a get request to server for primary map
-func (ms *MapService) GetPrimaryMap() (models.Map[[]models.Image], error) {
-	_map := models.Map[[]models.Image]{}
+func (ms *MapService) GetPrimaryMap() error {
 	userID := ms.api.UserID()
-
+	// get map
+	_map := models.Map[[]models.Image]{}
 	path := config.Env().SERVER_URL + "/game/wasm/map/primary/" + userID
 	res := ms.api.Request(http.MethodGet, path)
 	if res.Error != nil {
 		log.Println(res.Error.Error())
-		return _map, res.Error
+		return res.Error
 	}
-
 	err := json.Unmarshal(res.Body, &_map)
 	if err != nil {
-		return _map, err
+		return err
 	}
 
-	ms.primaryMap = _map
-	return _map, nil
+	// set map
+	ms.SetCurrentMap(_map)
+	return nil
 }
 
 // GetMapByID makes a get request to server for map by id
@@ -75,28 +74,104 @@ func (ms *MapService) GetMapByID(id string) (models.Map[[]models.Image], error) 
 	return _map, nil
 }
 
+// GetPortalMaps makes a get request to server for all portal maps by ID
+func (ms *MapService) GetPortalMaps(portals []models.Portal) error {
+	var ids []string
+	for _, p := range portals {
+		ids = append(ids, p.MapID)
+	}
+	path := config.Env().SERVER_URL + "/game/wasm/map/ids" + "?ids="
+	for i, id := range ids {
+		if i == 0 {
+			path += id
+		} else {
+			path += "&id=" + id
+		}
+	}
+	var _maps []models.Map[[]models.Image]
+	res := ms.api.Request(http.MethodGet, path)
+	if res.Error != nil {
+		log.Println(res.Error.Error())
+		return res.Error
+	}
+	err := json.Unmarshal(res.Body, &_maps)
+	if err != nil {
+		return err
+	}
+	for _, _map := range _maps {
+		ms.portalMaps[_map.ID.Hex()] = _map
+		// ignore player object, already set
+		objs, _ := objects.ObjectersFromImages(ms.ImagesFromMap(_map))
+		// set portal objects
+		ms.portalObjects[_map.ID.Hex()] = objs
+	}
+	return nil
+}
+
 func (ms *MapService) CurrentMap() models.Map[[]models.Image] {
 	return ms.currentMap
 }
 
-func (ms *MapService) SetCurrentMap(g objects.IGame, _map models.Map[[]models.Image]) {
+func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
 	// set map
 	ms.currentMap = _map
 
-	// set images
+	// extract images
 	imgs := ms.ImagesFromMap(_map)
-	ms.currentImages = imgs
 
 	// set objects
 	objs, player := objects.ObjectersFromImages(imgs)
-	g.Objects().SetAll(objs)
-	if player != nil {
-		g.SetPlayer(player)
+	ms.currentObjects = objs
+	if player != new(objects.Player) {
+		p, ok := player.(*objects.Player)
+		if !ok {
+			return
+		}
+		ms.player = p
 	}
 }
 
-func (ms *MapService) CurrentImages() []models.Image {
-	return ms.currentImages
+func (ms *MapService) CurrentObjects() []objects.Objecter {
+	return ms.currentObjects
+}
+
+func (ms *MapService) Player() *objects.Player {
+	return ms.player
+}
+
+func (ms *MapService) LoadMap(id string) error {
+	// check if map is current
+	if id == ms.currentMap.ID.Hex() {
+		return nil
+	}
+
+	// check if map is primary
+	if id == ms.primaryMap.ID.Hex() {
+		ms.currentMap = ms.primaryMap
+		ms.currentObjects = ms.primaryObjects
+		return nil
+	}
+
+	// check if map is portal
+	portal, ok := ms.portalMaps[id]
+	if ok {
+		objs, ok := ms.portalObjects[id]
+		if !ok {
+			panic("portal map objects not found")
+		}
+		ms.currentMap = portal
+		ms.currentObjects = objs
+		return nil
+	}
+
+	// if no objects, fetch map
+	_map, err := ms.GetMapByID(id)
+	if err != nil {
+		return err
+	}
+	ms.SetCurrentMap(_map)
+
+	return nil
 }
 
 // ImagesFromMap creates ebiten images from a Map, sorting by tiles, other, then portals
