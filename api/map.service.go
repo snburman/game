@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -129,7 +128,6 @@ func (ms *MapService) CurrentMap() models.Map[[]models.Image] {
 func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
 	// set map
 	ms.currentMap = _map
-	fmt.Println("current map set: ", _map.ID.Hex())
 
 	// extract images
 	imgs := ms.ImagesFromMap(_map)
@@ -140,6 +138,10 @@ func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
 	if ms.player == nil && player != nil {
 		ms.player = player
 	}
+	ms.player.SetPosition(objects.Position{
+		X: _map.Entrance.X,
+		Y: _map.Entrance.Y,
+	})
 	go ms.GetPortalMaps(_map.Portals)
 }
 
