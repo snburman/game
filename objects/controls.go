@@ -150,6 +150,8 @@ func (c *Controls) Update(g IGame, tick uint) error {
 			if control.IsPressed(x, y) {
 				switch control.Name() {
 				// TODO: create a common interface for this and keyboard
+				case "aButton":
+					g.LoadMap(g.PrimaryMap().ID.Hex())
 				case "bButton":
 					player.SetSpeed(config.RunSpeed)
 				case "upButton":

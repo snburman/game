@@ -30,6 +30,9 @@ func NewGame() *Game {
 	ms := api.NewMapService(api.ApiClient)
 	g.mapService = ms
 
+	g.Objects().SetAll(ms.CurrentObjects())
+	g.SetPlayer(ms.Player())
+
 	// load static images/objects
 	for _, f := range objects.StaticImages {
 		o := objects.NewObjectFromFile(f)
@@ -47,11 +50,7 @@ func (g *Game) Update() error {
 
 	objs := g.objects.GetAll()
 	for _, o := range objs {
-		object := o
-		if object.ObjType() == objects.ObjectPlayer {
-
-		}
-		err := object.Update(g, g.tick)
+		err := o.Update(g, g.tick)
 		if err != nil {
 			return err
 		}
@@ -80,18 +79,23 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 func (g *Game) LoadMap(id string) error {
 	// load map
-	err := g.mapService.LoadMap(id)
+	err := g.mapService.LoadMap(g, id)
 	if err != nil {
 		return err
 	}
+	// set objects
+	g.objects.SetAll(g.mapService.CurrentObjects())
 	// set player
 	g.SetPlayer(g.mapService.Player())
-	g.objects.SetAll(g.mapService.CurrentObjects())
 	return nil
 }
 
 func (g *Game) CurrentMap() models.Map[[]models.Image] {
 	return g.mapService.CurrentMap()
+}
+
+func (g *Game) PrimaryMap() models.Map[[]models.Image] {
+	return g.mapService.PrimaryMap()
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {

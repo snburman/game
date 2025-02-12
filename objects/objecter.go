@@ -7,9 +7,10 @@ import (
 )
 
 type IGame interface {
-	Objects() *ObjectManager
+	PrimaryMap() models.Map[[]models.Image]
 	CurrentMap() models.Map[[]models.Image]
 	LoadMap(id string) error
+	Objects() *ObjectManager
 	Player() *Player
 	SetPlayer(*Player)
 	Keyboard() *Keyboard
@@ -34,7 +35,7 @@ type Objecter interface {
 
 // ObjectersFromImages creates a slice of Objecter from a slice of models.Image
 // and returns a pointer to the player object if one exists
-func ObjectersFromImages(images []models.Image) (objs []Objecter, player Objecter) {
+func ObjectersFromImages(images []models.Image) (objs []Objecter, player *Player) {
 	var p *Player
 	for _, img := range images {
 		object := NewObject(img, ObjectOptions{
