@@ -1,11 +1,8 @@
-package assets
+package models
 
 import (
-	"bytes"
 	"image"
 	"image/color"
-	"image/png"
-	"io"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -35,29 +32,20 @@ type Image struct {
 	*ebiten.Image `json:"-"`
 }
 
-func PngBytesFromFile(file io.Reader) ([]byte, error) {
-	img, _, err := image.Decode(file)
-	if err != nil {
-		return nil, err
-	}
-	buf := new(bytes.Buffer)
-	err = png.Encode(buf, img)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+type AssetType string
+
+type Pixel struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+	R int `json:"r"`
+	G int `json:"g"`
+	B int `json:"b"`
+	A int `json:"a"`
 }
 
-func ImageFromBytes(data []byte) (*ebiten.Image, error) {
-	_img, _, err := image.Decode(bytes.NewReader(data))
-	if err != nil {
-		return nil, err
-	}
-	img := ebiten.NewImageFromImage(_img)
-	return img, nil
-}
+type PixelData = [][]Pixel
 
-func ImageFromPixelData(img Image) (*ebiten.Image, error) {
+func ImageFromPixelData(img Image) *ebiten.Image {
 	// craete rectangle using width and height
 	rect := image.NewRGBA(image.Rect(0, 0, img.Width, img.Height))
 	// fill image with squares with rgba values
@@ -72,6 +60,5 @@ func ImageFromPixelData(img Image) (*ebiten.Image, error) {
 		}
 	}
 	eImg := ebiten.NewImageFromImage(rect)
-
-	return eImg, nil
+	return eImg
 }

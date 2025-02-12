@@ -18,8 +18,10 @@ func NewPlayer(obj Object) *Player {
 }
 
 func (p *Player) Update(g IGame, tick uint) error {
+	// check for impending collision with screen boundaries
 	p.DetectScreenCollision()
 	for _, o := range g.Objects().GetAll() {
+		// if object is a portal, load the map
 		if o.ObjType() == ObjectPortal {
 			if p.IsCollided(o) && g.CurrentMap().ID.Hex() != o.ID() {
 				// if map does not exist, nothing will happen
@@ -27,6 +29,7 @@ func (p *Player) Update(g IGame, tick uint) error {
 			}
 			continue
 		}
+		// check for impending collision with other objects
 		p.DetectObjectCollision(o)
 	}
 

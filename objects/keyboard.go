@@ -32,6 +32,9 @@ func (k *Keyboard) Update(g IGame) {
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
 		g.Player().SetSpeed(config.RunSpeed)
 	}
+	if ebiten.IsKeyPressed(ebiten.KeyH) {
+		g.LoadMap(g.PrimaryMap().ID.Hex())
+	}
 	if ebiten.IsKeyPressed(ebiten.KeyUp) {
 		k.Press(input.Up)
 	} else {

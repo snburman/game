@@ -5,8 +5,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/snburman/game/api"
-	"github.com/snburman/game/assets"
 	"github.com/snburman/game/config"
+	"github.com/snburman/game/models"
 	"github.com/snburman/game/objects"
 )
 
@@ -14,31 +14,26 @@ const MAX_TICS = 10000
 
 type Game struct {
 	tick       uint
-	assets     *assets.Assets
 	objects    *objects.ObjectManager
 	mapService *api.MapService
 	keyboard   *objects.Keyboard
 	controls   *objects.Controls
-	player     objects.Objecter
+	player     *objects.Player
 }
 
 func NewGame() *Game {
 	g := &Game{
-		assets:     &assets.Assets{},
-		objects:    objects.NewObjectManager(),
-		mapService: api.NewMapService(api.ApiClient),
-		keyboard:   objects.NewKeyboard(),
-		controls:   objects.NewControls(),
+		objects:  objects.NewObjectManager(),
+		keyboard: objects.NewKeyboard(),
+		controls: objects.NewControls(),
 	}
-	imgs := g.mapService.ImagesFromMap(g.mapService.PrimaryMap())
-	g.assets.Images = imgs
-	objs, player := objects.ObjectersFromImages(imgs)
-	g.Objects().SetAll(objs)
-	if player != nil {
-		g.SetPlayer(player)
-	}
+	ms := api.NewMapService(api.ApiClient)
+	g.mapService = ms
 
-	// load static objects
+	g.Objects().SetAll(ms.CurrentObjects())
+	g.SetPlayer(ms.Player())
+
+	// load static images/objects
 	for _, f := range objects.StaticImages {
 		o := objects.NewObjectFromFile(f)
 		g.Objects().Add(o)
@@ -53,15 +48,9 @@ func (g *Game) Update() error {
 		g.tick++
 	}
 
-	// TODO: Update all objects and share updates with server
-
 	objs := g.objects.GetAll()
 	for _, o := range objs {
-		object := o
-		if object.ObjType() == objects.ObjectPlayer {
-
-		}
-		err := object.Update(g, g.tick)
+		err := o.Update(g, g.tick)
 		if err != nil {
 			return err
 		}
@@ -78,37 +67,33 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}))
 	objects := g.objects.GetAll()
 	for _, o := range objects {
-		object := o
-		object.Draw(screen, g.tick)
+		o.Draw(screen, g.tick)
 	}
 	for _, o := range g.controls.Objects() {
-		object := o
-		object.Draw(screen, g.tick)
+		o.Draw(screen, g.tick)
 	}
 	g.Player().Draw(screen, g.tick)
 }
 
 func (g *Game) LoadMap(id string) error {
-	_map, err := g.mapService.GetMapByID(id)
+	// load map
+	err := g.mapService.LoadMap(g, id)
 	if err != nil {
 		return err
 	}
-	// set map
-	g.mapService.SetCurrentMap(_map)
-	// set images
-	images := g.mapService.CurrentImages()
-	g.assets.Images = images
 	// set objects
-	objs, player := objects.ObjectersFromImages(images)
-	g.objects.SetAll(objs)
-	if player != nil {
-		g.SetPlayer(player)
-	}
+	g.objects.SetAll(g.mapService.CurrentObjects())
+	// set player
+	g.SetPlayer(g.mapService.Player())
 	return nil
 }
 
-func (g *Game) CurrentMap() assets.Map[[]assets.Image] {
+func (g *Game) CurrentMap() models.Map[[]models.Image] {
 	return g.mapService.CurrentMap()
+}
+
+func (g *Game) PrimaryMap() models.Map[[]models.Image] {
+	return g.mapService.PrimaryMap()
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -123,19 +108,18 @@ func (g *Game) RunGameWithOptions(opts *ebiten.RunGameOptions) error {
 	return ebiten.RunGameWithOptions(g, opts)
 }
 
-func (g *Game) Assets() *assets.Assets {
-	return g.assets
-}
-
 func (g *Game) Objects() *objects.ObjectManager {
 	return g.objects
 }
 
-func (g *Game) Player() objects.Objecter {
+func (g *Game) Player() *objects.Player {
 	return g.player
 }
 
-func (g *Game) SetPlayer(player objects.Objecter) {
+func (g *Game) SetPlayer(player *objects.Player) {
+	if player.ObjType() != objects.ObjectPlayer {
+		panic("player must have ObjectType: ObjectPlayer")
+	}
 	g.player = player
 }
 

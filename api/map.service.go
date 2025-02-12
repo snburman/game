@@ -2,63 +2,74 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/snburman/game/assets"
 	"github.com/snburman/game/config"
+	"github.com/snburman/game/models"
+	"github.com/snburman/game/objects"
 )
 
 type MapService struct {
-	api           *API
-	primaryMap    assets.Map[[]assets.Image]
-	currentMap    assets.Map[[]assets.Image]
-	currentImages []assets.Image
+	api            *API
+	player         *objects.Player
+	primaryMap     models.Map[[]models.Image]
+	primaryObjects []objects.Objecter
+	currentMap     models.Map[[]models.Image]
+	currentObjects []objects.Objecter
+	portalMaps     map[string]models.Map[[]models.Image]
+	portalObjects  map[string][]objects.Objecter
 }
 
 func NewMapService(api *API) *MapService {
 	ms := &MapService{
-		api:           api,
-		primaryMap:    assets.Map[[]assets.Image]{},
-		currentMap:    assets.Map[[]assets.Image]{},
-		currentImages: []assets.Image{},
+		api:            api,
+		primaryMap:     models.Map[[]models.Image]{},
+		primaryObjects: []objects.Objecter{},
+		currentMap:     models.Map[[]models.Image]{},
+		currentObjects: []objects.Objecter{},
+		portalMaps:     map[string]models.Map[[]models.Image]{},
+		portalObjects:  map[string][]objects.Objecter{},
 	}
-	_, err := ms.GetPrimaryMap()
+	err := ms.GetPrimaryMap()
 	if err != nil {
 		panic(err)
 	}
 	return ms
 }
 
-func (ms *MapService) PrimaryMap() assets.Map[[]assets.Image] {
+func (ms *MapService) PrimaryMap() models.Map[[]models.Image] {
 	return ms.primaryMap
 }
 
 // GetPrimaryMap makes a get request to server for primary map
-func (ms *MapService) GetPrimaryMap() (assets.Map[[]assets.Image], error) {
-	_map := assets.Map[[]assets.Image]{}
+func (ms *MapService) GetPrimaryMap() error {
 	userID := ms.api.UserID()
-
+	// get map
+	_map := models.Map[[]models.Image]{}
 	path := config.Env().SERVER_URL + "/game/wasm/map/primary/" + userID
 	res := ms.api.Request(http.MethodGet, path)
 	if res.Error != nil {
 		log.Println(res.Error.Error())
-		return _map, res.Error
+		return res.Error
 	}
-
 	err := json.Unmarshal(res.Body, &_map)
 	if err != nil {
-		return _map, err
+		return err
 	}
 
+	// set map
+	ms.SetCurrentMap(_map)
 	ms.primaryMap = _map
-	return _map, nil
+	ms.primaryObjects = ms.currentObjects
+	return nil
 }
 
 // GetMapByID makes a get request to server for map by id
-func (ms *MapService) GetMapByID(id string) (assets.Map[[]assets.Image], error) {
-	_map := assets.Map[[]assets.Image]{}
+func (ms *MapService) GetMapByID(id string) (models.Map[[]models.Image], error) {
+	_map := models.Map[[]models.Image]{}
 
 	path := config.Env().SERVER_URL + "/game/wasm/map?id=" + id + "&userID=" + ms.api.UserID()
 	res := ms.api.Request(http.MethodGet, path)
@@ -73,37 +84,129 @@ func (ms *MapService) GetMapByID(id string) (assets.Map[[]assets.Image], error) 
 	return _map, nil
 }
 
-func (ms *MapService) CurrentMap() assets.Map[[]assets.Image] {
+// GetPortalMaps makes a get request to server for all portal maps by ID
+func (ms *MapService) GetPortalMaps(portals []models.Portal) error {
+	var ids []string
+	for _, p := range portals {
+		ids = append(ids, p.MapID)
+	}
+	path := config.Env().SERVER_URL + "/game/wasm/map/ids" + "?ids="
+	for i, id := range ids {
+		if i == 0 {
+			path += id
+		} else {
+			path += "&id=" + id
+		}
+	}
+	var _maps []models.Map[[]models.Image]
+	res := ms.api.Request(http.MethodGet, path)
+	if res.Error != nil {
+		log.Println(res.Error.Error())
+		return res.Error
+	}
+	err := json.Unmarshal(res.Body, &_maps)
+	if err != nil {
+		return err
+	}
+	for _, _map := range _maps {
+		ms.portalMaps[_map.ID.Hex()] = _map
+		// ignore player object, already set
+		objs, _ := objects.ObjectersFromImages(ms.ImagesFromMap(_map))
+		// set portal objects
+		ms.portalObjects[_map.ID.Hex()] = objs
+	}
+	return nil
+}
+
+func (ms *MapService) CurrentMap() models.Map[[]models.Image] {
 	return ms.currentMap
 }
 
-func (ms *MapService) SetCurrentMap(_map assets.Map[[]assets.Image]) {
+// SetCurrentMap sets the current map and extracts object
+// into ms.Player() and ms.CurrentObjects()
+//
+// it then fetches all portal maps in a go routine
+func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
+	// set map
 	ms.currentMap = _map
-	ms.currentImages = ms.ImagesFromMap(_map)
+	fmt.Println("current map set: ", _map.ID.Hex())
+
+	// extract images
+	imgs := ms.ImagesFromMap(_map)
+
+	// set objects
+	objs, player := objects.ObjectersFromImages(imgs)
+	ms.currentObjects = objs
+	if ms.player == nil && player != nil {
+		ms.player = player
+	}
+	go ms.GetPortalMaps(_map.Portals)
 }
 
-func (ms *MapService) CurrentImages() []assets.Image {
-	return ms.currentImages
+func (ms *MapService) CurrentObjects() []objects.Objecter {
+	return ms.currentObjects
+}
+
+func (ms *MapService) Player() *objects.Player {
+	return ms.player
+}
+
+func (ms *MapService) LoadMap(g objects.IGame, id string) error {
+	// check if map is current
+	if id == ms.currentMap.ID.Hex() {
+		p := objects.Position{
+			X: ms.currentMap.Entrance.X,
+			Y: ms.currentMap.Entrance.Y,
+		}
+		g.Player().SetPosition(p)
+		return nil
+	}
+
+	// check if map is primary
+	if id == ms.primaryMap.ID.Hex() {
+		ms.currentMap = ms.primaryMap
+		ms.currentObjects = ms.primaryObjects
+		return nil
+	}
+
+	// check if map is portal
+	portal, ok := ms.portalMaps[id]
+	if ok {
+		objs, ok := ms.portalObjects[id]
+		if !ok {
+			panic("portal map objects not found")
+		}
+		ms.currentMap = portal
+		ms.currentObjects = objs
+		go ms.GetPortalMaps(portal.Portals)
+		return nil
+	}
+
+	// if no objects, fetch map
+	_map, err := ms.GetMapByID(id)
+	if err != nil {
+		return err
+	}
+	ms.SetCurrentMap(_map)
+	go ms.GetPortalMaps(_map.Portals)
+
+	return nil
 }
 
 // ImagesFromMap creates ebiten images from a Map, sorting by tiles, other, then portals
-func (ms *MapService) ImagesFromMap(_map assets.Map[[]assets.Image]) []assets.Image {
-	imagesUnsorted := []assets.Image{}
+func (ms *MapService) ImagesFromMap(_map models.Map[[]models.Image]) []models.Image {
+	imagesUnsorted := []models.Image{}
 
 	for key, image := range _map.Data {
-		img, err := assets.ImageFromPixelData(image)
-		if err != nil {
-			panic(err)
-		}
-		_map.Data[key].Image = img
+		_map.Data[key].Image = models.ImageFromPixelData(image)
 	}
 	imagesUnsorted = append(imagesUnsorted, _map.Data...)
 
 	// tiles first then non-tiles
-	var allImages []assets.Image
-	var nonTiles []assets.Image
+	var allImages []models.Image
+	var nonTiles []models.Image
 	for _, img := range imagesUnsorted {
-		if img.AssetType == assets.Tile {
+		if img.AssetType == models.Tile {
 			allImages = append(allImages, img)
 		} else {
 			nonTiles = append(nonTiles, img)
@@ -114,11 +217,11 @@ func (ms *MapService) ImagesFromMap(_map assets.Map[[]assets.Image]) []assets.Im
 	// add portals as images
 	for _, portal := range _map.Portals {
 		// blank ebiten image for collision detection with portal
-		am := assets.Image{
+		am := models.Image{
 			ID:        portal.MapID,
 			UserID:    _map.UserID,
 			Name:      "portal-" + portal.MapID,
-			AssetType: assets.MapPortal,
+			AssetType: models.MapPortal,
 			Width:     16,
 			Height:    16,
 			X:         portal.X,
