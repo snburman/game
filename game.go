@@ -67,12 +67,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}))
 	objects := g.objects.GetAll()
 	for _, o := range objects {
-		object := o
-		object.Draw(screen, g.tick)
+		o.Draw(screen, g.tick)
 	}
 	for _, o := range g.controls.Objects() {
-		object := o
-		object.Draw(screen, g.tick)
+		o.Draw(screen, g.tick)
 	}
 	g.Player().Draw(screen, g.tick)
 }
