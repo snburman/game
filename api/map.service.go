@@ -56,6 +56,7 @@ func (ms *MapService) GetPrimaryMap() error {
 	}
 	err := json.Unmarshal(res.Body, &_map)
 	if err != nil {
+		log.Println(err.Error())
 		return err
 	}
 
@@ -78,6 +79,7 @@ func (ms *MapService) GetMapByID(id string) (models.Map[[]models.Image], error) 
 	}
 	err := json.Unmarshal(res.Body, &_map)
 	if err != nil {
+		log.Println(err.Error())
 		return _map, err
 	}
 	return _map, nil
@@ -105,6 +107,7 @@ func (ms *MapService) GetPortalMaps(portals []models.Portal) error {
 	}
 	err := json.Unmarshal(res.Body, &_maps)
 	if err != nil {
+		log.Println(err.Error())
 		return err
 	}
 	for _, _map := range _maps {
@@ -156,11 +159,10 @@ func (ms *MapService) Player() *objects.Player {
 func (ms *MapService) LoadMap(g objects.IGame, id string) error {
 	// check if map is current
 	if id == ms.currentMap.ID.Hex() {
-		p := objects.Position{
+		g.Player().SetPosition(objects.Position{
 			X: ms.currentMap.Entrance.X,
 			Y: ms.currentMap.Entrance.Y,
-		}
-		g.Player().SetPosition(p)
+		})
 		return nil
 	}
 
@@ -168,6 +170,10 @@ func (ms *MapService) LoadMap(g objects.IGame, id string) error {
 	if id == ms.primaryMap.ID.Hex() {
 		ms.currentMap = ms.primaryMap
 		ms.currentObjects = ms.primaryObjects
+		g.Player().SetPosition(objects.Position{
+			X: ms.currentMap.Entrance.X,
+			Y: ms.currentMap.Entrance.Y,
+		})
 		return nil
 	}
 
@@ -180,6 +186,10 @@ func (ms *MapService) LoadMap(g objects.IGame, id string) error {
 		}
 		ms.currentMap = portal
 		ms.currentObjects = objs
+		g.Player().SetPosition(objects.Position{
+			X: ms.currentMap.Entrance.X,
+			Y: ms.currentMap.Entrance.Y,
+		})
 		go ms.GetPortalMaps(portal.Portals)
 		return nil
 	}
@@ -190,7 +200,6 @@ func (ms *MapService) LoadMap(g objects.IGame, id string) error {
 		return err
 	}
 	ms.SetCurrentMap(_map)
-	go ms.GetPortalMaps(_map.Portals)
 
 	return nil
 }

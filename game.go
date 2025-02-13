@@ -29,15 +29,6 @@ func NewGame() *Game {
 	}
 	ms := api.NewMapService(api.ApiClient)
 	g.mapService = ms
-
-	g.Objects().SetAll(ms.CurrentObjects())
-	g.SetPlayer(ms.Player())
-
-	// load static images/objects
-	for _, f := range objects.StaticImages {
-		o := objects.NewObjectFromFile(f)
-		g.Objects().Add(o)
-	}
 	return g
 }
 
@@ -48,7 +39,7 @@ func (g *Game) Update() error {
 		g.tick++
 	}
 
-	objs := g.objects.GetAll()
+	objs := g.Objects()
 	for _, o := range objs {
 		err := o.Update(g, g.tick)
 		if err != nil {
@@ -65,7 +56,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.Color(color.RGBA{
 		175, 175, 178, 255,
 	}))
-	objects := g.objects.GetAll()
+	objects := g.Objects()
 	for _, o := range objects {
 		o.Draw(screen, g.tick)
 	}
@@ -81,10 +72,6 @@ func (g *Game) LoadMap(id string) error {
 	if err != nil {
 		return err
 	}
-	// set objects
-	g.objects.SetAll(g.mapService.CurrentObjects())
-	// set player
-	g.SetPlayer(g.mapService.Player())
 	return nil
 }
 
@@ -108,12 +95,12 @@ func (g *Game) RunGameWithOptions(opts *ebiten.RunGameOptions) error {
 	return ebiten.RunGameWithOptions(g, opts)
 }
 
-func (g *Game) Objects() *objects.ObjectManager {
-	return g.objects
+func (g *Game) Objects() []objects.Objecter {
+	return g.mapService.CurrentObjects()
 }
 
 func (g *Game) Player() *objects.Player {
-	return g.player
+	return g.mapService.Player()
 }
 
 func (g *Game) SetPlayer(player *objects.Player) {
