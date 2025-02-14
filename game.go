@@ -13,8 +13,8 @@ import (
 const MAX_TICS = 10000
 
 type Game struct {
+	debug      *ebiten.Image
 	tick       uint
-	objects    *objects.ObjectManager
 	mapService *api.MapService
 	keyboard   *objects.Keyboard
 	controls   *objects.Controls
@@ -23,13 +23,17 @@ type Game struct {
 
 func NewGame() *Game {
 	g := &Game{
-		objects:  objects.NewObjectManager(),
+		debug:    ebiten.NewImage(config.ScreenWidth, 100),
 		keyboard: objects.NewKeyboard(),
 		controls: objects.NewControls(),
 	}
 	ms := api.NewMapService(api.ApiClient)
 	g.mapService = ms
 	return g
+}
+
+func (g *Game) DebugScreen() *ebiten.Image {
+	return g.debug
 }
 
 func (g *Game) Update() error {
@@ -56,6 +60,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.Color(color.RGBA{
 		175, 175, 178, 255,
 	}))
+	screen.DrawImage(g.DebugScreen(), &ebiten.DrawImageOptions{})
 	objects := g.Objects()
 	for _, o := range objects {
 		o.Draw(screen, g.tick)

@@ -1,13 +1,19 @@
 package objects
 
 import (
+	"strconv"
+	"sync"
+
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/snburman/game/config"
 )
 
 type Controls struct {
-	objs []*Object
+	mu         sync.Mutex
+	currentIDs map[ebiten.TouchID]bool
+	objs       []*Object
 }
 
 type Touch struct {
@@ -123,7 +129,8 @@ func NewControls() *Controls {
 		objects = append(objects, NewObjectFromFile(img))
 	}
 	return &Controls{
-		objs: objects,
+		objs:       objects,
+		currentIDs: make(map[ebiten.TouchID]bool),
 	}
 }
 
@@ -131,9 +138,15 @@ func (c *Controls) Objects() []*Object {
 	return c.objs
 }
 
-var currentIDs = make(map[ebiten.TouchID]bool)
-
 func (c *Controls) Update(g IGame, tick uint) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	str := ""
+	for id := range c.currentIDs {
+		str += strconv.Itoa(int(id)) + "\n"
+	}
+	ebitenutil.DebugPrint(g.DebugScreen(), str)
+
 	//TODO: lift logic to input package, touch.go
 	// allIDs := []ebiten.TouchID{}
 	newPressedIDs := []ebiten.TouchID{}
@@ -144,46 +157,45 @@ func (c *Controls) Update(g IGame, tick uint) error {
 	newPressedIDs = inpututil.AppendJustPressedTouchIDs(newPressedIDs)
 	for _, id := range newPressedIDs {
 		justPressedIDs[newPressedIDs[id]] = true
-		currentIDs[newPressedIDs[id]] = true
+		c.currentIDs[newPressedIDs[id]] = true
 		// allIDs = append(allIDs, id)
 	}
 
 	newReleasedIDs = inpututil.AppendJustReleasedTouchIDs(newReleasedIDs)
 	for i := range newReleasedIDs {
 		justReleasedIDs[newReleasedIDs[i]] = true
-		delete(currentIDs, newReleasedIDs[i])
+		delete(c.currentIDs, newReleasedIDs[i])
 	}
 
-	player := g.Player()
-	pos := player.Position()
+	speed := g.Player().Speed()
 	// set speed to default
-	player.SetSpeed(config.WalkSpeed)
+	g.Player().SetSpeed(config.WalkSpeed)
 	for _, control := range c.objs {
-		for id := range currentIDs {
+		for id := range c.currentIDs {
 			x, y := ebiten.TouchPosition(id)
 			if control.IsPressed(x, y) {
 				switch control.Name() {
 				case "home_button":
 					g.LoadMap(g.PrimaryMap().ID.Hex())
 				case "upButton":
-					player.SetDirection(Up)
-					if !player.Breached().Min.Y {
-						pos.Move(Up, player.Speed())
+					g.Player().SetDirection(Up)
+					if !g.Player().Breached().Min.Y {
+						g.Player().Position().Move(Up, speed)
 					}
 				case "downButton":
-					player.SetDirection(Down)
-					if !player.Breached().Max.Y {
-						pos.Move(Down, player.Speed())
+					g.Player().SetDirection(Down)
+					if !g.Player().Breached().Max.Y {
+						g.Player().Position().Move(Down, speed)
 					}
 				case "leftButton":
-					player.SetDirection(Left)
-					if !player.Breached().Min.X {
-						pos.Move(Left, player.Speed())
+					g.Player().SetDirection(Left)
+					if !g.Player().Breached().Min.X {
+						g.Player().Position().Move(Left, speed)
 					}
 				case "rightButton":
-					player.SetDirection(Right)
-					if !player.Breached().Max.X {
-						pos.Move(Right, player.Speed())
+					g.Player().SetDirection(Right)
+					if !g.Player().Breached().Max.X {
+						g.Player().Position().Move(Right, speed)
 					}
 				}
 			}

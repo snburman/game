@@ -7,6 +7,7 @@ import (
 )
 
 type IGame interface {
+	DebugScreen() *ebiten.Image
 	PrimaryMap() models.Map[[]models.Image]
 	CurrentMap() models.Map[[]models.Image]
 	LoadMap(id string) error
@@ -49,7 +50,7 @@ func ObjectersFromImages(images []models.Image) (objs []Objecter, player *Player
 		})
 		if object.ObjType() == ObjectPlayer {
 			if p == nil {
-				p = NewPlayer(*object)
+				p = NewPlayer(object)
 			}
 			switch img.AssetType {
 			case models.PlayerUp:
