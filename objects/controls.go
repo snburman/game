@@ -1,19 +1,12 @@
 package objects
 
 import (
-	"strconv"
-	"sync"
-
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/snburman/game/config"
 )
 
 type Controls struct {
-	mu         sync.Mutex
-	currentIDs map[ebiten.TouchID]bool
-	objs       []*Object
+	objs []*Object
 }
 
 type Touch struct {
@@ -129,8 +122,7 @@ func NewControls() *Controls {
 		objects = append(objects, NewObjectFromFile(img))
 	}
 	return &Controls{
-		objs:       objects,
-		currentIDs: make(map[ebiten.TouchID]bool),
+		objs: objects,
 	}
 }
 
@@ -139,39 +131,12 @@ func (c *Controls) Objects() []*Object {
 }
 
 func (c *Controls) Update(g IGame, tick uint) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	str := ""
-	for id := range c.currentIDs {
-		str += strconv.Itoa(int(id)) + "\n"
-	}
-	ebitenutil.DebugPrint(g.DebugScreen(), str)
-
-	//TODO: lift logic to input package, touch.go
-	// allIDs := []ebiten.TouchID{}
-	newPressedIDs := []ebiten.TouchID{}
-	justPressedIDs := make(map[ebiten.TouchID]bool)
-	justReleasedIDs := make(map[ebiten.TouchID]bool)
-	newReleasedIDs := []ebiten.TouchID{}
-
-	newPressedIDs = inpututil.AppendJustPressedTouchIDs(newPressedIDs)
-	for _, id := range newPressedIDs {
-		justPressedIDs[newPressedIDs[id]] = true
-		c.currentIDs[newPressedIDs[id]] = true
-		// allIDs = append(allIDs, id)
-	}
-
-	newReleasedIDs = inpututil.AppendJustReleasedTouchIDs(newReleasedIDs)
-	for i := range newReleasedIDs {
-		justReleasedIDs[newReleasedIDs[i]] = true
-		delete(c.currentIDs, newReleasedIDs[i])
-	}
 
 	speed := g.Player().Speed()
 	// set speed to default
 	g.Player().SetSpeed(config.WalkSpeed)
 	for _, control := range c.objs {
-		for id := range c.currentIDs {
+		for id := range g.TouchManager().CurrentIDs() {
 			x, y := ebiten.TouchPosition(id)
 			if control.IsPressed(x, y) {
 				switch control.Name() {

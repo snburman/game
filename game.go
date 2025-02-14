@@ -6,6 +6,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/snburman/game/api"
 	"github.com/snburman/game/config"
+	"github.com/snburman/game/input"
 	"github.com/snburman/game/models"
 	"github.com/snburman/game/objects"
 )
@@ -13,19 +14,21 @@ import (
 const MAX_TICS = 10000
 
 type Game struct {
-	debug      *ebiten.Image
-	tick       uint
-	mapService *api.MapService
-	keyboard   *objects.Keyboard
-	controls   *objects.Controls
-	player     *objects.Player
+	debug        *ebiten.Image
+	tick         uint
+	touchManager *input.TouchManager
+	mapService   *api.MapService
+	keyboard     *objects.Keyboard
+	controls     *objects.Controls
+	player       *objects.Player
 }
 
 func NewGame() *Game {
 	g := &Game{
-		debug:    ebiten.NewImage(config.ScreenWidth, 100),
-		keyboard: objects.NewKeyboard(),
-		controls: objects.NewControls(),
+		debug:        ebiten.NewImage(config.ScreenWidth, 100),
+		touchManager: input.NewTouchManager(),
+		keyboard:     objects.NewKeyboard(),
+		controls:     objects.NewControls(),
 	}
 	ms := api.NewMapService(api.ApiClient)
 	g.mapService = ms
@@ -34,6 +37,10 @@ func NewGame() *Game {
 
 func (g *Game) DebugScreen() *ebiten.Image {
 	return g.debug
+}
+
+func (g *Game) TouchManager() *input.TouchManager {
+	return g.touchManager
 }
 
 func (g *Game) Update() error {
@@ -50,6 +57,7 @@ func (g *Game) Update() error {
 			return err
 		}
 	}
+	g.touchManager.Update()
 	g.controls.Update(g, g.tick)
 	g.keyboard.Update(g)
 	g.Player().Update(g, g.tick)

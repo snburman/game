@@ -3,11 +3,13 @@ package objects
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/snburman/game/config"
+	"github.com/snburman/game/input"
 	"github.com/snburman/game/models"
 )
 
 type IGame interface {
 	DebugScreen() *ebiten.Image
+	TouchManager() *input.TouchManager
 	PrimaryMap() models.Map[[]models.Image]
 	CurrentMap() models.Map[[]models.Image]
 	LoadMap(id string) error
