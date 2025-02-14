@@ -87,6 +87,9 @@ func (ms *MapService) GetMapByID(id string) (models.Map[[]models.Image], error) 
 
 // GetPortalMaps makes a get request to server for all portal maps by ID
 func (ms *MapService) GetPortalMaps(portals []models.Portal) error {
+	if len(portals) == 0 {
+		return nil
+	}
 	var ids []string
 	for _, p := range portals {
 		ids = append(ids, p.MapID)
@@ -96,7 +99,7 @@ func (ms *MapService) GetPortalMaps(portals []models.Portal) error {
 		if i == 0 {
 			path += id
 		} else {
-			path += "&id=" + id
+			path += "&ids=" + id
 		}
 	}
 	var _maps []models.Map[[]models.Image]
@@ -140,6 +143,23 @@ func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
 	ms.currentObjects = objs
 	if ms.player == nil && player != nil {
 		ms.player = player
+	}
+	if ms.player == nil && player == nil {
+		obj := *objects.NewObjectFromFile(objects.FileImage{
+			Name: "player",
+			Url:  "default_player.png",
+			Opts: objects.ObjectOptions{
+				ObjectType: objects.ObjectPlayer,
+				Position: objects.Position{
+					X: _map.Entrance.X,
+					Y: _map.Entrance.Y,
+				},
+				Direction: objects.Right,
+				Speed:     1,
+				Scale:     3.5,
+			},
+		})
+		ms.player = objects.NewPlayer(obj)
 	}
 	ms.player.SetPosition(objects.Position{
 		X: _map.Entrance.X,

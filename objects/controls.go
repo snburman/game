@@ -74,33 +74,47 @@ var f []FileImage = []FileImage{
 		},
 	},
 	{
-		Url:  "buttons/a_button.png",
-		Name: "aButton",
+		Url:  "buttons/home_button.png",
+		Name: "home_button",
 		Opts: ObjectOptions{
 			ObjectType: ObjectTile,
 			Position: Position{
-				X: 275,
-				Y: 365,
+				X: 250,
+				Y: 390,
 			},
 			Direction: Right,
 			Speed:     1,
 			Scale:     1,
 		},
 	},
-	{
-		Url:  "buttons/b_button.png",
-		Name: "bButton",
-		Opts: ObjectOptions{
-			ObjectType: ObjectTile,
-			Position: Position{
-				X: 225,
-				Y: 415,
-			},
-			Direction: Right,
-			Speed:     1,
-			Scale:     1,
-		},
-	},
+	// {
+	// 	Url:  "buttons/a_button.png",
+	// 	Name: "aButton",
+	// 	Opts: ObjectOptions{
+	// 		ObjectType: ObjectTile,
+	// 		Position: Position{
+	// 			X: 275,
+	// 			Y: 365,
+	// 		},
+	// 		Direction: Right,
+	// 		Speed:     1,
+	// 		Scale:     1,
+	// 	},
+	// },
+	// {
+	// 	Url:  "buttons/b_button.png",
+	// 	Name: "bButton",
+	// 	Opts: ObjectOptions{
+	// 		ObjectType: ObjectTile,
+	// 		Position: Position{
+	// 			X: 225,
+	// 			Y: 415,
+	// 		},
+	// 		Direction: Right,
+	// 		Speed:     1,
+	// 		Scale:     1,
+	// 	},
+	// },
 }
 
 func NewControls() *Controls {
@@ -149,11 +163,8 @@ func (c *Controls) Update(g IGame, tick uint) error {
 			x, y := ebiten.TouchPosition(id)
 			if control.IsPressed(x, y) {
 				switch control.Name() {
-				// TODO: create a common interface for this and keyboard
-				case "aButton":
+				case "home_button":
 					g.LoadMap(g.PrimaryMap().ID.Hex())
-				case "bButton":
-					player.SetSpeed(config.RunSpeed)
 				case "upButton":
 					player.SetDirection(Up)
 					if !player.Breached().Min.Y {
