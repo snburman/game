@@ -10,7 +10,7 @@ type IGame interface {
 	PrimaryMap() models.Map[[]models.Image]
 	CurrentMap() models.Map[[]models.Image]
 	LoadMap(id string) error
-	Objects() *ObjectManager
+	Objects() []Objecter
 	Player() *Player
 	SetPlayer(*Player)
 	Keyboard() *Keyboard

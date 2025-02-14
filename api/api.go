@@ -23,7 +23,6 @@ func NewAPI() *API {
 	return &API{}
 }
 
-// disable js during debugging and testing
 func (a *API) GetUserID() string {
 	// Get user ID from global JS
 	fun := js.Global().Get("id")

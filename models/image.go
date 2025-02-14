@@ -18,16 +18,14 @@ const (
 )
 
 type Image struct {
-	ID        string    `json:"_id"`
-	UserID    string    `json:"user_id"`
-	X         int       `json:"x"`
-	Y         int       `json:"y"`
-	Name      string    `json:"name"`
-	AssetType AssetType `json:"asset_type"`
-	// Path          string      `json:"path"`
-	Width  int `json:"width"`
-	Height int `json:"height"`
-	// Frames        []FrameSpec `json:"frames"`
+	ID            string    `json:"_id"`
+	UserID        string    `json:"user_id"`
+	X             int       `json:"x"`
+	Y             int       `json:"y"`
+	Name          string    `json:"name"`
+	AssetType     AssetType `json:"asset_type"`
+	Width         int       `json:"width"`
+	Height        int       `json:"height"`
 	Data          PixelData `json:"data"`
 	*ebiten.Image `json:"-"`
 }
