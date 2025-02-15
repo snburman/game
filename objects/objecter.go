@@ -9,6 +9,7 @@ import (
 
 type IGame interface {
 	DebugScreen() *ebiten.Image
+	ClearDebugScreen()
 	TouchManager() *input.TouchManager
 	PrimaryMap() models.Map[[]models.Image]
 	CurrentMap() models.Map[[]models.Image]

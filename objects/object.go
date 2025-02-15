@@ -321,6 +321,5 @@ func (o *Object) Speed() int {
 }
 
 func (o *Object) SetSpeed(s int) {
-
 	o.speed = s
 }

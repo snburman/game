@@ -39,6 +39,10 @@ func (g *Game) DebugScreen() *ebiten.Image {
 	return g.debug
 }
 
+func (g *Game) ClearDebugScreen() {
+	g.debug = ebiten.NewImage(config.ScreenWidth, 100)
+}
+
 func (g *Game) TouchManager() *input.TouchManager {
 	return g.touchManager
 }
@@ -57,7 +61,6 @@ func (g *Game) Update() error {
 			return err
 		}
 	}
-	g.touchManager.Update()
 	g.controls.Update(g, g.tick)
 	g.keyboard.Update(g)
 	g.Player().Update(g, g.tick)
