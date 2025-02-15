@@ -48,7 +48,7 @@ func (c *Conn) close() error {
 	return nil
 }
 
-func (c *Conn) listen() {
+func (c *Conn) Listen() {
 	go func(c *Conn) {
 		defer c.close()
 		var dispatch Dispatch[any]

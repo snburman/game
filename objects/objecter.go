@@ -1,19 +1,78 @@
 package objects
 
 import (
-	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/snburman/game/config"
 	"github.com/snburman/game/input"
+	"github.com/snburman/game/models"
 )
 
+type IGame interface {
+	DebugScreen() *ebiten.Image
+	ClearDebugScreen()
+	TouchManager() *input.TouchManager
+	PrimaryMap() models.Map[[]models.Image]
+	CurrentMap() models.Map[[]models.Image]
+	LoadMap(id string) error
+	Objects() []Objecter
+	Player() *Player
+	SetPlayer(*Player)
+	Keyboard() *Keyboard
+	Controls() *Controls
+}
+
 type Objecter interface {
+	ID() string
 	Name() string
-	Position() Position
+	ObjType() ObjectType
+	Image() *ebiten.Image
+	Position() *Position
 	SetPosition(Position)
+	Breached() Breached
 	Direction() Direction
 	SetDirection(Direction)
 	Speed() int
-	Update(screen *ebiten.Image, input input.Input, tick uint) error
+	SetSpeed(int)
+	Update(g IGame, tick uint) error
 	Draw(screen *ebiten.Image, tick uint)
+}
+
+// ObjectersFromImages creates a slice of Objecter from a slice of models.Image
+// and returns a pointer to the player object if one exists
+func ObjectersFromImages(images []models.Image) (objs []Objecter, player *Player) {
+	var p *Player
+	for _, img := range images {
+		object := NewObject(img, ObjectOptions{
+			Position: Position{
+				X: img.X,
+				Y: img.Y,
+			},
+			Direction: Right,
+			Scale:     config.Scale,
+			Speed:     config.WalkSpeed,
+		})
+		if object.ObjType() == ObjectPlayer {
+			if p == nil {
+				p = NewPlayer(object)
+			}
+			switch img.AssetType {
+			case models.PlayerUp:
+				p.SetFrame(Up, object.Image())
+				continue
+			case models.PlayerDown:
+				p.SetFrame(Down, object.Image())
+				continue
+			case models.PlayerLeft:
+				p.SetFrame(Left, object.Image())
+				continue
+			case models.PlayerRight:
+				p.SetFrame(Right, object.Image())
+				continue
+			}
+		}
+		objs = append(objs, object)
+	}
+	return objs, p
 }
 
 type Direction int
@@ -48,7 +107,15 @@ func (p *Position) Set(x, y, z int) {
 	p.Z = z
 }
 
-func WillCollide(source, destination Object) (top, bottom, left, right bool) {
-	// TODO: Implement collision detection
-	return
+type Breached struct {
+	Min struct {
+		X, Y bool
+	}
+	Max struct {
+		X, Y bool
+	}
+}
+
+func (b *Breached) Get() *Breached {
+	return b
 }
