@@ -3,7 +3,20 @@ module github.com/snburman/game
 go 1.21.5
 
 require (
+<<<<<<< Updated upstream
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200707082815-5321531c36a2 // indirect
+=======
+	github.com/hajimehoshi/ebiten/v2 v2.8.6
+	go.mongodb.org/mongo-driver v1.17.2
+)
+
+require github.com/gorilla/websocket v1.5.3 // indirect
+
+require (
+	github.com/ebitengine/gomobile v0.0.0-20240911145611-4856209ac325 // indirect
+	github.com/ebitengine/hideconsole v1.0.0 // indirect
+	github.com/ebitengine/purego v0.8.0 // indirect
+>>>>>>> Stashed changes
 	github.com/google/uuid v1.6.0
 	github.com/hajimehoshi/ebiten v1.12.12 // indirect
 	github.com/joho/godotenv v1.5.1
