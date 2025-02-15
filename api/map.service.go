@@ -145,7 +145,7 @@ func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
 		ms.player = player
 	}
 	if ms.player == nil && player == nil {
-		obj := *objects.NewObjectFromFile(objects.FileImage{
+		obj := objects.NewObjectFromFile(objects.FileImage{
 			Name: "player",
 			Url:  "default_player.png",
 			Opts: objects.ObjectOptions{

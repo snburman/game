@@ -6,10 +6,10 @@ import (
 )
 
 type Player struct {
-	Object
+	*Object
 }
 
-func NewPlayer(obj Object) *Player {
+func NewPlayer(obj *Object) *Player {
 	p := &Player{
 		Object: obj,
 	}
@@ -33,30 +33,29 @@ func (p *Player) Update(g IGame, tick uint) error {
 		p.DetectObjectCollision(o)
 	}
 
-	pos := p.Position()
 	var f input.InputFunctions = map[input.Key]func(){
 		input.Up: func() {
 			p.SetDirection(Up)
 			if !p.Breached().Min.Y {
-				pos.Move(Up, p.Speed())
+				p.Position().Move(Up, p.Speed())
 			}
 		},
 		input.Down: func() {
 			p.SetDirection(Down)
 			if !p.Breached().Max.Y {
-				pos.Move(Down, p.Speed())
+				p.Position().Move(Down, p.Speed())
 			}
 		},
 		input.Left: func() {
 			p.SetDirection(Left)
 			if !p.Breached().Min.X {
-				pos.Move(Left, p.Speed())
+				p.Position().Move(Left, p.Speed())
 			}
 		},
 		input.Right: func() {
 			p.SetDirection(Right)
 			if !p.Breached().Max.X {
-				pos.Move(Right, p.Speed())
+				p.Position().Move(Right, p.Speed())
 			}
 		},
 	}

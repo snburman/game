@@ -11,19 +11,17 @@ type Controls struct {
 }
 
 type Touch struct {
-	OriginX, OriginY int
-	CurrX, CurrY     int
-	Duration         int
+	X, Y int
 }
 
-var f []FileImage = []FileImage{
+var buttonImgs []FileImage = []FileImage{
 	{
 		Url:  "buttons/up_button.png",
 		Name: "upButton",
 		Opts: ObjectOptions{
 			ObjectType: ObjectTile,
 			Position: Position{
-				X: 63,
+				X: 60,
 				Y: 350,
 			},
 			Direction: Up,
@@ -37,7 +35,7 @@ var f []FileImage = []FileImage{
 		Opts: ObjectOptions{
 			ObjectType: ObjectTile,
 			Position: Position{
-				X: 63,
+				X: 60,
 				Y: 430,
 			},
 			Direction: Down,
@@ -51,7 +49,7 @@ var f []FileImage = []FileImage{
 		Opts: ObjectOptions{
 			ObjectType: ObjectTile,
 			Position: Position{
-				X: 25,
+				X: 22,
 				Y: 390,
 			},
 			Direction: Left,
@@ -65,7 +63,7 @@ var f []FileImage = []FileImage{
 		Opts: ObjectOptions{
 			ObjectType: ObjectTile,
 			Position: Position{
-				X: 100,
+				X: 97,
 				Y: 390,
 			},
 			Direction: Right,
@@ -79,7 +77,7 @@ var f []FileImage = []FileImage{
 		Opts: ObjectOptions{
 			ObjectType: ObjectTile,
 			Position: Position{
-				X: 250,
+				X: 167,
 				Y: 390,
 			},
 			Direction: Right,
@@ -87,39 +85,39 @@ var f []FileImage = []FileImage{
 			Scale:     1,
 		},
 	},
-	// {
-	// 	Url:  "buttons/a_button.png",
-	// 	Name: "aButton",
-	// 	Opts: ObjectOptions{
-	// 		ObjectType: ObjectTile,
-	// 		Position: Position{
-	// 			X: 275,
-	// 			Y: 365,
-	// 		},
-	// 		Direction: Right,
-	// 		Speed:     1,
-	// 		Scale:     1,
-	// 	},
-	// },
-	// {
-	// 	Url:  "buttons/b_button.png",
-	// 	Name: "bButton",
-	// 	Opts: ObjectOptions{
-	// 		ObjectType: ObjectTile,
-	// 		Position: Position{
-	// 			X: 225,
-	// 			Y: 415,
-	// 		},
-	// 		Direction: Right,
-	// 		Speed:     1,
-	// 		Scale:     1,
-	// 	},
-	// },
+	{
+		Url:  "buttons/a_button.png",
+		Name: "aButton",
+		Opts: ObjectOptions{
+			ObjectType: ObjectTile,
+			Position: Position{
+				X: 285,
+				Y: 362,
+			},
+			Direction: Right,
+			Speed:     1,
+			Scale:     1,
+		},
+	},
+	{
+		Url:  "buttons/b_button.png",
+		Name: "bButton",
+		Opts: ObjectOptions{
+			ObjectType: ObjectTile,
+			Position: Position{
+				X: 235,
+				Y: 418,
+			},
+			Direction: Right,
+			Speed:     1,
+			Scale:     1,
+		},
+	},
 }
 
 func NewControls() *Controls {
 	var objects []*Object
-	for _, img := range f {
+	for _, img := range buttonImgs {
 		objects = append(objects, NewObjectFromFile(img))
 	}
 	return &Controls{
@@ -131,61 +129,58 @@ func (c *Controls) Objects() []*Object {
 	return c.objs
 }
 
-var currentIDs = make(map[ebiten.TouchID]bool)
+var touchIDs = make(map[ebiten.TouchID]bool, 128)
 
 func (c *Controls) Update(g IGame, tick uint) error {
-	//TODO: lift logic to input package, touch.go
-	// allIDs := []ebiten.TouchID{}
-	newPressedIDs := []ebiten.TouchID{}
-	justPressedIDs := make(map[ebiten.TouchID]bool)
-	justReleasedIDs := make(map[ebiten.TouchID]bool)
-	newReleasedIDs := []ebiten.TouchID{}
-
-	newPressedIDs = inpututil.AppendJustPressedTouchIDs(newPressedIDs)
-	for _, id := range newPressedIDs {
-		justPressedIDs[newPressedIDs[id]] = true
-		currentIDs[newPressedIDs[id]] = true
-		// allIDs = append(allIDs, id)
+	var justReleasedIDs []ebiten.TouchID
+	justReleasedIDs = inpututil.AppendJustReleasedTouchIDs(justReleasedIDs)
+	for _, id := range justReleasedIDs {
+		delete(touchIDs, id)
+	}
+	newIDs := make([]ebiten.TouchID, 0, 56)
+	newIDs = inpututil.AppendJustPressedTouchIDs(newIDs)
+	for _, id := range newIDs {
+		touchIDs[id] = true
 	}
 
-	newReleasedIDs = inpututil.AppendJustReleasedTouchIDs(newReleasedIDs)
-	for i := range newReleasedIDs {
-		justReleasedIDs[newReleasedIDs[i]] = true
-		delete(currentIDs, newReleasedIDs[i])
-	}
-
-	player := g.Player()
-	pos := player.Position()
-	// set speed to default
-	player.SetSpeed(config.WalkSpeed)
-	for _, control := range c.objs {
-		for id := range currentIDs {
-			x, y := ebiten.TouchPosition(id)
+	speed := g.Player().Speed()
+	for id := range touchIDs {
+		x, y := ebiten.TouchPosition(id)
+		for _, control := range c.objs {
 			if control.IsPressed(x, y) {
-				switch control.Name() {
+				if control.name == "bButton" {
+					if control.IsPressed(x, y) {
+						g.Player().SetSpeed(config.RunSpeed)
+					} else {
+						g.Player().SetSpeed(config.WalkSpeed)
+					}
+				}
+				switch control.name {
 				case "home_button":
 					g.LoadMap(g.PrimaryMap().ID.Hex())
 				case "upButton":
-					player.SetDirection(Up)
-					if !player.Breached().Min.Y {
-						pos.Move(Up, player.Speed())
+					g.Player().SetDirection(Up)
+					if !g.Player().Breached().Min.Y {
+						g.Player().Position().Move(Up, speed)
 					}
 				case "downButton":
-					player.SetDirection(Down)
-					if !player.Breached().Max.Y {
-						pos.Move(Down, player.Speed())
+					g.Player().SetDirection(Down)
+					if !g.Player().Breached().Max.Y {
+						g.Player().Position().Move(Down, speed)
 					}
 				case "leftButton":
-					player.SetDirection(Left)
-					if !player.Breached().Min.X {
-						pos.Move(Left, player.Speed())
+					g.Player().SetDirection(Left)
+					if !g.Player().Breached().Min.X {
+						g.Player().Position().Move(Left, speed)
 					}
 				case "rightButton":
-					player.SetDirection(Right)
-					if !player.Breached().Max.X {
-						pos.Move(Right, player.Speed())
+					g.Player().SetDirection(Right)
+					if !g.Player().Breached().Max.X {
+						g.Player().Position().Move(Right, speed)
 					}
+				default:
 				}
+
 			}
 
 		}

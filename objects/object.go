@@ -2,7 +2,6 @@ package objects
 
 import (
 	"log"
-	"sync"
 
 	_ "image/png"
 
@@ -277,11 +276,11 @@ func (o *Object) IsPressed(x, y int) bool {
 	return false
 }
 
-func (o Object) ID() string {
+func (o *Object) ID() string {
 	return o.id
 }
 
-func (o Object) Name() string {
+func (o *Object) Name() string {
 	return o.name
 }
 
@@ -289,11 +288,11 @@ func (o *Object) SetFrame(d Direction, img *ebiten.Image) {
 	o.frames[d] = img
 }
 
-func (o Object) ObjType() ObjectType {
+func (o *Object) ObjType() ObjectType {
 	return o.objType
 }
 
-func (o Object) Image() *ebiten.Image {
+func (o *Object) Image() *ebiten.Image {
 	return o.img
 }
 
@@ -305,11 +304,11 @@ func (o *Object) SetPosition(p Position) {
 	o.position = p
 }
 
-func (o Object) Breached() Breached {
+func (o *Object) Breached() Breached {
 	return o.breached
 }
 
-func (o Object) Direction() Direction {
+func (o *Object) Direction() Direction {
 	return o.direction
 }
 
@@ -317,56 +316,10 @@ func (o *Object) SetDirection(d Direction) {
 	o.direction = d
 }
 
-func (o Object) Speed() int {
+func (o *Object) Speed() int {
 	return o.speed
 }
 
 func (o *Object) SetSpeed(s int) {
 	o.speed = s
-}
-
-type ObjectManager struct {
-	mu      sync.Mutex
-	Objects []Objecter
-}
-
-func NewObjectManager() *ObjectManager {
-	return &ObjectManager{
-		Objects: []Objecter{},
-	}
-}
-
-func (om *ObjectManager) Add(s Objecter) {
-	om.mu.Lock()
-	defer om.mu.Unlock()
-	om.Objects = append(om.Objects, s)
-}
-
-func (om *ObjectManager) Get(name string) Objecter {
-	om.mu.Lock()
-	defer om.mu.Unlock()
-	for _, o := range om.Objects {
-		if (o).Name() == name {
-			return o
-		}
-	}
-	return nil
-}
-
-func (om *ObjectManager) GetAll() []Objecter {
-	om.mu.Lock()
-	defer om.mu.Unlock()
-	return om.Objects
-}
-
-func (om *ObjectManager) SetAll(objs []Objecter) {
-	om.mu.Lock()
-	defer om.mu.Unlock()
-	om.Objects = objs
-}
-
-func (om *ObjectManager) RemoveAll() {
-	om.mu.Lock()
-	defer om.mu.Unlock()
-	om.Objects = []Objecter{}
 }
