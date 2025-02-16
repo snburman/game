@@ -13,7 +13,9 @@ import (
 
 type MapService struct {
 	api            *API
+	conn           *Conn
 	player         *objects.Player
+	onlinePlayers  map[string]*objects.Player
 	primaryMap     models.Map[[]models.Image]
 	primaryObjects []objects.Objecter
 	currentMap     models.Map[[]models.Image]
@@ -25,6 +27,7 @@ type MapService struct {
 func NewMapService(api *API) *MapService {
 	ms := &MapService{
 		api:            api,
+		onlinePlayers:  map[string]*objects.Player{},
 		primaryMap:     models.Map[[]models.Image]{},
 		primaryObjects: []objects.Objecter{},
 		currentMap:     models.Map[[]models.Image]{},
@@ -34,6 +37,12 @@ func NewMapService(api *API) *MapService {
 	}
 	err := ms.GetPrimaryMap()
 	if err != nil {
+		log.Println("error getting primary map")
+		panic(err)
+	}
+	ms.conn, err = NewConn(config.Env().WS_SERVER_URL+"/game/wasm/ws", ms)
+	if err != nil {
+		log.Println("error creating websocket connection")
 		panic(err)
 	}
 	return ms
@@ -63,6 +72,7 @@ func (ms *MapService) GetPrimaryMap() error {
 	// set map
 	ms.SetCurrentMap(_map)
 	ms.primaryMap = _map
+	ms.player.Username = _map.UserName
 	ms.primaryObjects = ms.currentObjects
 	return nil
 }
@@ -116,7 +126,7 @@ func (ms *MapService) GetPortalMaps(portals []models.Portal) error {
 	for _, _map := range _maps {
 		ms.portalMaps[_map.ID.Hex()] = _map
 		// ignore player object, already set
-		objs, _ := objects.ObjectersFromImages(ms.ImagesFromMap(_map))
+		objs, _ := objects.ObjectersFromImages(ms.ImagesFromMap(_map), ms.api.userID)
 		// set portal objects
 		ms.portalObjects[_map.ID.Hex()] = objs
 	}
@@ -139,7 +149,7 @@ func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
 	imgs := ms.ImagesFromMap(_map)
 
 	// set objects
-	objs, player := objects.ObjectersFromImages(imgs)
+	objs, player := objects.ObjectersFromImages(imgs, ms.api.userID)
 	ms.currentObjects = objs
 	if ms.player == nil && player != nil {
 		ms.player = player
@@ -159,13 +169,15 @@ func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
 				Scale:     3.5,
 			},
 		})
-		ms.player = objects.NewPlayer(obj)
+		ms.player = objects.NewPlayer(obj, ms.api.userID)
 	}
 	ms.player.SetPosition(objects.Position{
 		X: _map.Entrance.X,
 		Y: _map.Entrance.Y,
 	})
 	go ms.GetPortalMaps(_map.Portals)
+
+	//TODO: load other players from websocket
 }
 
 func (ms *MapService) CurrentObjects() []objects.Objecter {
@@ -174,6 +186,25 @@ func (ms *MapService) CurrentObjects() []objects.Objecter {
 
 func (ms *MapService) Player() *objects.Player {
 	return ms.player
+}
+
+func (ms *MapService) LoadOnlinePlayers(imgs []models.Image) {
+	ms.onlinePlayers = objects.PlayersFromImages(imgs)
+}
+
+func (ms *MapService) UpdatePlayer(update PlayerUpdate) {
+	var player *objects.Player
+	if update.UserID == ms.api.userID {
+		player = ms.player
+	} else {
+		p, ok := ms.onlinePlayers[update.UserID]
+		if !ok {
+			return
+		}
+		player = p
+	}
+	player.SetPosition(update.Pos)
+	player.SetDirection(update.Dir)
 }
 
 func (ms *MapService) LoadMap(g objects.IGame, id string) error {

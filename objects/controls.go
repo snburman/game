@@ -147,14 +147,14 @@ func (c *Controls) Update(g IGame, tick uint) error {
 	for id := range touchIDs {
 		x, y := ebiten.TouchPosition(id)
 		for _, control := range c.objs {
-			if control.IsPressed(x, y) {
-				if control.name == "bButton" {
-					if control.IsPressed(x, y) {
-						g.Player().SetSpeed(config.RunSpeed)
-					} else {
-						g.Player().SetSpeed(config.WalkSpeed)
-					}
+			if control.name == "bButton" {
+				if control.IsPressed(x, y) {
+					g.Player().SetSpeed(config.RunSpeed)
+				} else {
+					g.Player().SetSpeed(config.WalkSpeed)
 				}
+			}
+			if control.IsPressed(x, y) {
 				switch control.name {
 				case "home_button":
 					g.LoadMap(g.PrimaryMap().ID.Hex())

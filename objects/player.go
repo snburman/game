@@ -6,14 +6,23 @@ import (
 )
 
 type Player struct {
+	id       string
+	Username string
 	*Object
 }
 
-func NewPlayer(obj *Object) *Player {
+func NewPlayer(obj *Object, id string) *Player {
+	if obj == nil {
+		panic("player object cannot be nil")
+	}
+	if id == "" {
+		panic("player id cannot be empty")
+	}
+	obj.objType = ObjectPlayer
 	p := &Player{
+		id:     id,
 		Object: obj,
 	}
-	p.name = "player"
 	return p
 }
 
@@ -71,4 +80,12 @@ func (p *Player) Update(g IGame, tick uint) error {
 
 func (p *Player) Draw(screen *ebiten.Image, tick uint) {
 	p.Object.Draw(screen, tick)
+}
+
+func (p *Player) ID() string {
+	return p.id
+}
+
+func (p *Player) SetID(id string) {
+	p.id = id
 }

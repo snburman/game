@@ -67,16 +67,15 @@ func NewObject(img models.Image, opts ObjectOptions) *Object {
 		t = ObjectPortal
 	case models.PlayerUp, models.PlayerDown, models.PlayerLeft, models.PlayerRight:
 		t = ObjectPlayer
-	}
-	if t == "" {
+	default:
 		t = ObjectTile
 	}
 
 	// set id for portal
-	// only portals need fixed ids to images
+	// only portals and players need fixed ids to images
 	// other objects have random ids which can be used to specify unique objects
 	var id string
-	if t == ObjectPortal {
+	if t == ObjectPortal || t == ObjectPlayer {
 		id = img.ID
 	} else {
 		id = uuid.New().String()

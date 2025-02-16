@@ -39,7 +39,7 @@ type Objecter interface {
 
 // ObjectersFromImages creates a slice of Objecter from a slice of models.Image
 // and returns a pointer to the player object if one exists
-func ObjectersFromImages(images []models.Image) (objs []Objecter, player *Player) {
+func ObjectersFromImages(images []models.Image, userID string) (objs []Objecter, player *Player) {
 	var p *Player
 	for _, img := range images {
 		object := NewObject(img, ObjectOptions{
@@ -52,27 +52,43 @@ func ObjectersFromImages(images []models.Image) (objs []Objecter, player *Player
 			Speed:     config.WalkSpeed,
 		})
 		if object.ObjType() == ObjectPlayer {
-			if p == nil {
-				p = NewPlayer(object)
-			}
-			switch img.AssetType {
-			case models.PlayerUp:
-				p.SetFrame(Up, object.Image())
-				continue
-			case models.PlayerDown:
-				p.SetFrame(Down, object.Image())
-				continue
-			case models.PlayerLeft:
-				p.SetFrame(Left, object.Image())
-				continue
-			case models.PlayerRight:
-				p.SetFrame(Right, object.Image())
+			if img.UserID == userID {
+				if p == nil {
+					p = NewPlayer(object, userID)
+				}
+				dir := DirectionFromAssetType(img.AssetType)
+				p.SetFrame(dir, object.Image())
 				continue
 			}
+			continue
 		}
 		objs = append(objs, object)
 	}
 	return objs, p
+}
+
+func PlayersFromImages(images []models.Image) map[string]*Player {
+	players := make(map[string]*Player)
+	for _, img := range images {
+		if img.AssetType != models.PlayerUp && img.AssetType != models.PlayerDown &&
+			img.AssetType != models.PlayerLeft && img.AssetType != models.PlayerRight {
+			continue
+		}
+		object := NewObject(img, ObjectOptions{
+			Position: Position{
+				X: img.X,
+				Y: img.Y,
+			},
+			Direction: Right,
+			Scale:     config.Scale,
+			Speed:     config.WalkSpeed,
+		})
+		if _, ok := players[img.UserID]; !ok {
+			players[img.UserID] = NewPlayer(object, img.UserID)
+		}
+		players[img.UserID].SetFrame(DirectionFromAssetType(img.AssetType), object.Image())
+	}
+	return players
 }
 
 type Direction int
@@ -84,8 +100,24 @@ const (
 	Right
 )
 
+func DirectionFromAssetType(t models.AssetType) Direction {
+	switch t {
+	case models.PlayerUp:
+		return Up
+	case models.PlayerDown:
+		return Down
+	case models.PlayerLeft:
+		return Left
+	case models.PlayerRight:
+		return Right
+	}
+	return Down
+}
+
 type Position struct {
-	X, Y, Z int
+	X int `json:"x"`
+	Y int `json:"y"`
+	Z int `json:"z"`
 }
 
 func (p *Position) Move(d Direction, s int) {

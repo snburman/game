@@ -6,20 +6,34 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/snburman/game/config"
 )
 
 type (
 	Conn struct {
-		websocket *websocket.Conn
-		ID        string
-		LastPing  time.Time
-		Messages  chan []byte
+		ID         string
+		websocket  *websocket.Conn
+		mapService *MapService
+		messages   chan []byte
 	}
 )
 
-func NewConn(id string, url string) (*Conn, error) {
+func NewConn(url string, ms *MapService) (*Conn, error) {
+	if ms == nil {
+		return nil, errors.New("nil map service")
+	}
+	if ms.api == nil {
+		return nil, errors.New("nil api")
+	}
+	if ms.api.userID == "" {
+		return nil, errors.New("nil user id")
+	}
+	if url == "" {
+		return nil, errors.New("nil url")
+	}
+
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 10 * time.Second,
 	}
@@ -27,31 +41,26 @@ func NewConn(id string, url string) (*Conn, error) {
 	headers["CLIENT_ID"] = []string{config.Env().CLIENT_ID}
 	headers["CLIENT_SECRET"] = []string{config.Env().CLIENT_SECRET}
 
-	websocket, _, err := dialer.Dial(url, headers)
+	websocket, res, err := dialer.Dial(url+"/"+ms.api.userID, headers)
 	if err != nil {
 		return nil, err
 	}
+	log.Println("websocket connection established", "status", res.Status)
 
 	c := &Conn{
-		websocket: websocket,
-		ID:        id,
-		Messages:  make(chan []byte, 256),
+		ID:         uuid.New().String(),
+		websocket:  websocket,
+		messages:   make(chan []byte, 256),
+		mapService: ms,
 	}
+	go c.listen()
 	return c, nil
 }
 
-func (c *Conn) close() error {
-	if c == nil {
-		return errors.New("cannot close nil connection")
-	}
-	c.websocket.Close()
-	return nil
-}
-
-func (c *Conn) Listen() {
+func (c *Conn) listen() {
 	go func(c *Conn) {
-		defer c.close()
-		var dispatch Dispatch[any]
+		defer c.Close()
+		var dispatch Dispatch[[]byte]
 		for {
 			_, message, err := c.websocket.ReadMessage()
 			if err != nil {
@@ -63,7 +72,7 @@ func (c *Conn) Listen() {
 				) {
 					log.Printf("error: %v", err)
 				}
-				close(c.Messages)
+				close(c.messages)
 				break
 			}
 			// Parse dispatch from websocket message
@@ -75,16 +84,16 @@ func (c *Conn) Listen() {
 
 			// Set conn on dispatch
 			dispatch.conn = c
-			// Dispatch to message handler
-			// handler.in <- dispatch
+			// Route dispatch to appropriate function
+			RouteDispatch(dispatch)
 		}
 	}(c)
 
 	// outgoing messages
 	for {
-		msg, ok := <-c.Messages
+		msg, ok := <-c.messages
 		if !ok {
-			c.close()
+			c.Close()
 			break
 		}
 		if c.websocket == nil {
@@ -93,7 +102,7 @@ func (c *Conn) Listen() {
 
 		if err := c.websocket.WriteMessage(1, msg); err != nil {
 			log.Println("error writing message", "error", err)
-			c.close()
+			c.Close()
 		}
 	}
 }
@@ -109,10 +118,14 @@ func (c *Conn) Publish(msg []byte) {
 		log.Println("connection severed, message not sent")
 		return
 	}
-	c.Messages <- msg
+	c.messages <- msg
 }
 
-func (c *Conn) Write(p []byte) (n int, err error) {
-	c.Messages <- p
-	return len(p), nil
+func (c *Conn) Close() error {
+	if c == nil {
+		return errors.New("cannot close nil connection")
+	}
+	c.websocket.Close()
+	log.Println("websocket connection closed, ", c.ID)
+	return nil
 }
