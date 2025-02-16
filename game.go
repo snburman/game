@@ -61,6 +61,10 @@ func (g *Game) Update() error {
 			return err
 		}
 	}
+	for _, p := range g.OnlinePlayers() {
+		p.Update(g, g.tick)
+	}
+
 	g.controls.Update(g, g.tick)
 	g.keyboard.Update(g)
 	g.Player().Update(g, g.tick)
@@ -72,18 +76,28 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		175, 175, 178, 255,
 	}))
 	screen.DrawImage(g.DebugScreen(), &ebiten.DrawImageOptions{})
+
+	// draw game objects
 	objects := g.Objects()
 	for _, o := range objects {
 		o.Draw(screen, g.tick)
 	}
+
+	// draw online players
+	for _, p := range g.OnlinePlayers() {
+		p.Draw(screen, g.tick)
+	}
+
+	// draw controls
 	for _, o := range g.controls.Objects() {
 		o.Draw(screen, g.tick)
 	}
+
+	// draw local player
 	g.Player().Draw(screen, g.tick)
 }
 
 func (g *Game) LoadMap(id string) error {
-	// load map
 	err := g.mapService.LoadMap(g, id)
 	if err != nil {
 		return err
@@ -119,11 +133,19 @@ func (g *Game) Player() *objects.Player {
 	return g.mapService.Player()
 }
 
+func (g *Game) OnlinePlayers() map[string]*objects.Player {
+	return g.mapService.OnlinePlayers()
+}
+
 func (g *Game) SetPlayer(player *objects.Player) {
 	if player.ObjType() != objects.ObjectPlayer {
 		panic("player must have ObjectType: ObjectPlayer")
 	}
 	g.player = player
+}
+
+func (g *Game) DispatchUpdatePlayer() {
+	g.mapService.DispatchUpdatePlayer(g.Player())
 }
 
 func (g *Game) Keyboard() *objects.Keyboard {

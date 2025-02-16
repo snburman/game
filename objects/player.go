@@ -48,24 +48,28 @@ func (p *Player) Update(g IGame, tick uint) error {
 			if !p.Breached().Min.Y {
 				p.Position().Move(Up, p.Speed())
 			}
+			g.DispatchUpdatePlayer()
 		},
 		input.Down: func() {
 			p.SetDirection(Down)
 			if !p.Breached().Max.Y {
 				p.Position().Move(Down, p.Speed())
 			}
+			g.DispatchUpdatePlayer()
 		},
 		input.Left: func() {
 			p.SetDirection(Left)
 			if !p.Breached().Min.X {
 				p.Position().Move(Left, p.Speed())
 			}
+			g.DispatchUpdatePlayer()
 		},
 		input.Right: func() {
 			p.SetDirection(Right)
 			if !p.Breached().Max.X {
 				p.Position().Move(Right, p.Speed())
 			}
+			g.DispatchUpdatePlayer()
 		},
 	}
 

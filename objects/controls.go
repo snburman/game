@@ -163,21 +163,25 @@ func (c *Controls) Update(g IGame, tick uint) error {
 					if !g.Player().Breached().Min.Y {
 						g.Player().Position().Move(Up, speed)
 					}
+					g.DispatchUpdatePlayer()
 				case "downButton":
 					g.Player().SetDirection(Down)
 					if !g.Player().Breached().Max.Y {
 						g.Player().Position().Move(Down, speed)
 					}
+					g.DispatchUpdatePlayer()
 				case "leftButton":
 					g.Player().SetDirection(Left)
 					if !g.Player().Breached().Min.X {
 						g.Player().Position().Move(Left, speed)
 					}
+					g.DispatchUpdatePlayer()
 				case "rightButton":
 					g.Player().SetDirection(Right)
 					if !g.Player().Breached().Max.X {
 						g.Player().Position().Move(Right, speed)
 					}
+					g.DispatchUpdatePlayer()
 				default:
 				}
 

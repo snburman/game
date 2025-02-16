@@ -6,14 +6,13 @@ import (
 	"log"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/snburman/game/config"
 )
 
 type (
 	Conn struct {
-		ID         string
+		UserID     string
 		websocket  *websocket.Conn
 		mapService *MapService
 		messages   chan []byte
@@ -41,14 +40,17 @@ func NewConn(url string, ms *MapService) (*Conn, error) {
 	headers["CLIENT_ID"] = []string{config.Env().CLIENT_ID}
 	headers["CLIENT_SECRET"] = []string{config.Env().CLIENT_SECRET}
 
-	websocket, res, err := dialer.Dial(url+"/"+ms.api.userID, headers)
+	url = url + "/" + ms.api.userID
+	log.Println("connecting to websocket", "url", url)
+	websocket, res, err := dialer.Dial(url, headers)
 	if err != nil {
+		log.Println("res", res)
 		return nil, err
 	}
 	log.Println("websocket connection established", "status", res.Status)
 
 	c := &Conn{
-		ID:         uuid.New().String(),
+		UserID:     ms.api.userID,
 		websocket:  websocket,
 		messages:   make(chan []byte, 256),
 		mapService: ms,
@@ -126,6 +128,6 @@ func (c *Conn) Close() error {
 		return errors.New("cannot close nil connection")
 	}
 	c.websocket.Close()
-	log.Println("websocket connection closed, ", c.ID)
+	log.Println("websocket connection closed, ", c.UserID)
 	return nil
 }

@@ -45,6 +45,14 @@ func NewMapService(api *API) *MapService {
 		log.Println("error creating websocket connection")
 		panic(err)
 	}
+	dispatch := NewDispatch(ms.conn, LoadNewOnlinePlayer, PlayerUpdate{
+		UserID: ms.api.UserID(),
+		MapID:  ms.primaryMap.ID.Hex(),
+		Dir:    int(ms.player.Direction()),
+		Pos:    *ms.player.Position(),
+	})
+	dispatch.MarshalAndPublish()
+
 	return ms
 }
 
@@ -166,7 +174,7 @@ func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
 				},
 				Direction: objects.Right,
 				Speed:     1,
-				Scale:     3.5,
+				Scale:     config.Scale,
 			},
 		})
 		ms.player = objects.NewPlayer(obj, ms.api.userID)
@@ -176,8 +184,6 @@ func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
 		Y: _map.Entrance.Y,
 	})
 	go ms.GetPortalMaps(_map.Portals)
-
-	//TODO: load other players from websocket
 }
 
 func (ms *MapService) CurrentObjects() []objects.Objecter {
@@ -188,11 +194,29 @@ func (ms *MapService) Player() *objects.Player {
 	return ms.player
 }
 
+func (ms *MapService) OnlinePlayers() map[string]*objects.Player {
+	return ms.onlinePlayers
+}
+
 func (ms *MapService) LoadOnlinePlayers(imgs []models.Image) {
 	ms.onlinePlayers = objects.PlayersFromImages(imgs)
 }
 
-func (ms *MapService) UpdatePlayer(update PlayerUpdate) {
+func (ms *MapService) LoadNewOnlinePlayer(img models.Image) {
+	playerSlice := objects.PlayersFromImages([]models.Image{img})
+	player, ok := playerSlice[img.UserID]
+	if !ok {
+		log.Println("player not found")
+		return
+	}
+	ms.onlinePlayers[player.ID()] = player
+}
+
+func (ms *MapService) RemoveOnlinePlayer(id string) {
+	delete(ms.onlinePlayers, id)
+}
+
+func (ms *MapService) UpdateLocalPlayer(update PlayerUpdate) {
 	var player *objects.Player
 	if update.UserID == ms.api.userID {
 		player = ms.player
@@ -204,7 +228,17 @@ func (ms *MapService) UpdatePlayer(update PlayerUpdate) {
 		player = p
 	}
 	player.SetPosition(update.Pos)
-	player.SetDirection(update.Dir)
+	player.SetDirection(objects.Direction(update.Dir))
+}
+
+func (ms *MapService) DispatchUpdatePlayer(update *objects.Player) {
+	dispatch := NewDispatch(ms.conn, UpdatePlayer, PlayerUpdate{
+		UserID: update.ID(),
+		MapID:  ms.currentMap.ID.Hex(),
+		Dir:    int(update.Direction()),
+		Pos:    *update.Position(),
+	})
+	dispatch.MarshalAndPublish()
 }
 
 func (ms *MapService) LoadMap(g objects.IGame, id string) error {

@@ -6,13 +6,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/snburman/game/models"
-	"github.com/snburman/game/objects"
 )
 
 const (
-	LoadOnlinePlayers FunctionName = "load_online_players"
-	UpdatePlayer      FunctionName = "update_player"
-	Chat              FunctionName = "chat"
+	LoadOnlinePlayers   FunctionName = "load_online_players"
+	LoadNewOnlinePlayer FunctionName = "load_new_online_player"
+	RemoveOnlinePlayer  FunctionName = "remove_online_player"
+	UpdatePlayer        FunctionName = "update_player"
+	Chat                FunctionName = "chat"
 )
 
 type (
@@ -24,9 +25,14 @@ type (
 		Data     T            `json:"data"`
 	}
 	PlayerUpdate struct {
-		UserID string            `json:"user_id"`
-		Dir    objects.Direction `json:"dir"`
-		Pos    objects.Position  `json:"pos"`
+		UserID string `json:"user_id"`
+		MapID  string `json:"map_id"`
+		Dir    int    `json:"dir"`
+		Pos    struct {
+			X int `json:"x"`
+			Y int `json:"y"`
+			Z int `json:"z"`
+		} `json:"pos"`
 	}
 )
 
@@ -88,13 +94,20 @@ func RouteDispatch(d Dispatch[[]byte]) {
 	if d.conn == nil {
 		panic("nil connection, dispatch not sent")
 	}
+	log.Println("routing dispatch", d)
 
 	switch d.Function {
 	case LoadOnlinePlayers:
 		dispatch := ParseDispatch[[]models.Image](d)
 		d.conn.mapService.LoadOnlinePlayers(dispatch.Data)
+	case LoadNewOnlinePlayer:
+		dispatch := ParseDispatch[models.Image](d)
+		d.conn.mapService.LoadNewOnlinePlayer(dispatch.Data)
 	case UpdatePlayer:
 		dispatch := ParseDispatch[PlayerUpdate](d)
-		d.conn.mapService.UpdatePlayer(dispatch.Data)
+		d.conn.mapService.UpdateLocalPlayer(dispatch.Data)
+	case RemoveOnlinePlayer:
+		dispatch := ParseDispatch[string](d)
+		d.conn.mapService.RemoveOnlinePlayer(dispatch.Data)
 	}
 }
