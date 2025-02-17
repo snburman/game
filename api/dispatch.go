@@ -102,10 +102,6 @@ func RouteDispatch(d Dispatch[[]byte]) {
 		d.conn.mapService.LoadOnlinePlayers(dispatch.Data)
 	case LoadNewOnlinePlayer:
 		dispatch := ParseDispatch[[]models.Image](d)
-		if dispatch.Data == nil || len(dispatch.Data) == 0 {
-			log.Println("nil data")
-			return
-		}
 		d.conn.mapService.LoadNewOnlinePlayer(dispatch.Data)
 	case UpdatePlayer:
 		dispatch := ParseDispatch[PlayerUpdate](d)
