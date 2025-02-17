@@ -147,14 +147,14 @@ func (c *Controls) Update(g IGame, tick uint) error {
 	for id := range touchIDs {
 		x, y := ebiten.TouchPosition(id)
 		for _, control := range c.objs {
-			if control.IsPressed(x, y) {
-				if control.name == "bButton" {
-					if control.IsPressed(x, y) {
-						g.Player().SetSpeed(config.RunSpeed)
-					} else {
-						g.Player().SetSpeed(config.WalkSpeed)
-					}
+			if control.name == "bButton" {
+				if control.IsPressed(x, y) {
+					g.Player().SetSpeed(config.RunSpeed)
+				} else {
+					g.Player().SetSpeed(config.WalkSpeed)
 				}
+			}
+			if control.IsPressed(x, y) {
 				switch control.name {
 				case "home_button":
 					g.LoadMap(g.PrimaryMap().ID.Hex())
@@ -163,21 +163,25 @@ func (c *Controls) Update(g IGame, tick uint) error {
 					if !g.Player().Breached().Min.Y {
 						g.Player().Position().Move(Up, speed)
 					}
+					g.DispatchUpdatePlayer()
 				case "downButton":
 					g.Player().SetDirection(Down)
 					if !g.Player().Breached().Max.Y {
 						g.Player().Position().Move(Down, speed)
 					}
+					g.DispatchUpdatePlayer()
 				case "leftButton":
 					g.Player().SetDirection(Left)
 					if !g.Player().Breached().Min.X {
 						g.Player().Position().Move(Left, speed)
 					}
+					g.DispatchUpdatePlayer()
 				case "rightButton":
 					g.Player().SetDirection(Right)
 					if !g.Player().Breached().Max.X {
 						g.Player().Position().Move(Right, speed)
 					}
+					g.DispatchUpdatePlayer()
 				default:
 				}
 

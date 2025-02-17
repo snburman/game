@@ -13,7 +13,9 @@ import (
 
 type MapService struct {
 	api            *API
+	conn           *Conn
 	player         *objects.Player
+	onlinePlayers  map[string]*objects.Player
 	primaryMap     models.Map[[]models.Image]
 	primaryObjects []objects.Objecter
 	currentMap     models.Map[[]models.Image]
@@ -25,6 +27,7 @@ type MapService struct {
 func NewMapService(api *API) *MapService {
 	ms := &MapService{
 		api:            api,
+		onlinePlayers:  map[string]*objects.Player{},
 		primaryMap:     models.Map[[]models.Image]{},
 		primaryObjects: []objects.Objecter{},
 		currentMap:     models.Map[[]models.Image]{},
@@ -34,8 +37,22 @@ func NewMapService(api *API) *MapService {
 	}
 	err := ms.GetPrimaryMap()
 	if err != nil {
+		log.Println("error getting primary map")
 		panic(err)
 	}
+	ms.conn, err = NewConn(config.Env().WS_SERVER_URL+"/game/wasm/ws", ms)
+	if err != nil {
+		log.Println("error creating websocket connection")
+		panic(err)
+	}
+	dispatch := NewDispatch(ms.conn, LoadNewOnlinePlayer, PlayerUpdate{
+		UserID: ms.api.UserID(),
+		MapID:  ms.primaryMap.ID.Hex(),
+		Dir:    int(ms.player.Direction()),
+		Pos:    *ms.player.Position(),
+	})
+	dispatch.MarshalAndPublish()
+
 	return ms
 }
 
@@ -63,6 +80,7 @@ func (ms *MapService) GetPrimaryMap() error {
 	// set map
 	ms.SetCurrentMap(_map)
 	ms.primaryMap = _map
+	ms.player.Username = _map.UserName
 	ms.primaryObjects = ms.currentObjects
 	return nil
 }
@@ -86,12 +104,17 @@ func (ms *MapService) GetMapByID(id string) (models.Map[[]models.Image], error) 
 }
 
 // GetPortalMaps makes a get request to server for all portal maps by ID
-func (ms *MapService) GetPortalMaps(portals []models.Portal) error {
-	if len(portals) == 0 {
-		return nil
+func (ms *MapService) GetPortalMaps(_map models.Map[[]models.Image]) error {
+	// get updated map with portals
+	updatedMap, err := ms.GetMapByID(_map.ID.Hex())
+	if err != nil {
+		log.Println(err.Error())
+		return err
 	}
+
+	// get all portal maps
 	var ids []string
-	for _, p := range portals {
+	for _, p := range updatedMap.Portals {
 		ids = append(ids, p.MapID)
 	}
 	path := config.Env().SERVER_URL + "/game/wasm/map/ids" + "?ids="
@@ -108,15 +131,17 @@ func (ms *MapService) GetPortalMaps(portals []models.Portal) error {
 		log.Println(res.Error.Error())
 		return res.Error
 	}
-	err := json.Unmarshal(res.Body, &_maps)
+	err = json.Unmarshal(res.Body, &_maps)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
+
+	// parse and set portal maps
 	for _, _map := range _maps {
 		ms.portalMaps[_map.ID.Hex()] = _map
 		// ignore player object, already set
-		objs, _ := objects.ObjectersFromImages(ms.ImagesFromMap(_map))
+		objs, _ := objects.ObjectersFromImages(ms.ImagesFromMap(_map), ms.api.userID)
 		// set portal objects
 		ms.portalObjects[_map.ID.Hex()] = objs
 	}
@@ -139,33 +164,19 @@ func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
 	imgs := ms.ImagesFromMap(_map)
 
 	// set objects
-	objs, player := objects.ObjectersFromImages(imgs)
+	objs, player := objects.ObjectersFromImages(imgs, ms.api.userID)
 	ms.currentObjects = objs
 	if ms.player == nil && player != nil {
 		ms.player = player
 	}
 	if ms.player == nil && player == nil {
-		obj := objects.NewObjectFromFile(objects.FileImage{
-			Name: "player",
-			Url:  "default_player.png",
-			Opts: objects.ObjectOptions{
-				ObjectType: objects.ObjectPlayer,
-				Position: objects.Position{
-					X: _map.Entrance.X,
-					Y: _map.Entrance.Y,
-				},
-				Direction: objects.Right,
-				Speed:     1,
-				Scale:     3.5,
-			},
-		})
-		ms.player = objects.NewPlayer(obj)
+		ms.player = objects.NewDefaultPlayer(ms.api.userID, _map.Entrance.X, _map.Entrance.Y)
 	}
 	ms.player.SetPosition(objects.Position{
 		X: _map.Entrance.X,
 		Y: _map.Entrance.Y,
 	})
-	go ms.GetPortalMaps(_map.Portals)
+	go ms.GetPortalMaps(_map)
 }
 
 func (ms *MapService) CurrentObjects() []objects.Objecter {
@@ -176,7 +187,78 @@ func (ms *MapService) Player() *objects.Player {
 	return ms.player
 }
 
+func (ms *MapService) OnlinePlayers() map[string]*objects.Player {
+	return ms.onlinePlayers
+}
+
+func (ms *MapService) LoadOnlinePlayers(imgs []models.Image) {
+	if len(imgs) == 0 {
+		log.Println("no online players image data")
+		ms.RemoveOnlinePlayers()
+		return
+	}
+	ms.onlinePlayers = objects.PlayersFromImages(imgs)
+	log.Println("online players", ms.onlinePlayers)
+}
+
+func (ms *MapService) LoadNewOnlinePlayer(imgs []models.Image) {
+	var player *objects.Player
+	if imgs == nil || len(imgs) == 0 {
+		log.Println("no new online player image data")
+		player = objects.NewDefaultPlayer(ms.api.userID, ms.currentMap.Entrance.X, ms.currentMap.Entrance.Y)
+	} else {
+		playerSlice := objects.PlayersFromImages(imgs)
+		p, ok := playerSlice[imgs[0].UserID]
+		if !ok {
+			log.Println("player not found")
+			return
+		}
+		player = p
+	}
+	player.SetPosition(objects.Position{
+		X: ms.currentMap.Entrance.X,
+		Y: ms.currentMap.Entrance.Y,
+	})
+	ms.onlinePlayers[player.ID()] = player
+}
+
+func (ms *MapService) RemoveOnlinePlayers() {
+	ms.onlinePlayers = map[string]*objects.Player{}
+}
+
+func (ms *MapService) RemoveOnlinePlayerByID(id string) {
+	delete(ms.onlinePlayers, id)
+}
+
+func (ms *MapService) UpdateLocalPlayer(update PlayerUpdate) {
+	var player *objects.Player
+	if update.UserID == ms.api.userID {
+		player = ms.player
+	} else {
+		p, ok := ms.onlinePlayers[update.UserID]
+		if !ok {
+			return
+		}
+		player = p
+	}
+	player.SetPosition(update.Pos)
+	player.SetDirection(objects.Direction(update.Dir))
+}
+
+func (ms *MapService) DispatchUpdatePlayer(update *objects.Player) {
+	dispatch := NewDispatch(ms.conn, UpdatePlayer, PlayerUpdate{
+		UserID: update.ID(),
+		MapID:  ms.currentMap.ID.Hex(),
+		Dir:    int(update.Direction()),
+		Pos:    *update.Position(),
+	})
+	dispatch.MarshalAndPublish()
+}
+
 func (ms *MapService) LoadMap(g objects.IGame, id string) error {
+	// dispatch player update after map load
+	defer g.DispatchUpdatePlayer()
+
 	// check if map is current
 	if id == ms.currentMap.ID.Hex() {
 		g.Player().SetPosition(objects.Position{
@@ -188,37 +270,48 @@ func (ms *MapService) LoadMap(g objects.IGame, id string) error {
 
 	// check if map is primary
 	if id == ms.primaryMap.ID.Hex() {
+		// remove all online players locally
+		ms.RemoveOnlinePlayers()
+		// set primary map
 		ms.currentMap = ms.primaryMap
 		ms.currentObjects = ms.primaryObjects
 		g.Player().SetPosition(objects.Position{
 			X: ms.currentMap.Entrance.X,
 			Y: ms.currentMap.Entrance.Y,
 		})
+		go ms.GetPortalMaps(ms.currentMap)
 		return nil
 	}
 
 	// check if map is portal
 	portal, ok := ms.portalMaps[id]
 	if ok {
+		// remove all online players locally
+		ms.RemoveOnlinePlayers()
+		// set portal objects
 		objs, ok := ms.portalObjects[id]
 		if !ok {
 			panic("portal map objects not found")
 		}
+		// set portal map
 		ms.currentMap = portal
 		ms.currentObjects = objs
 		g.Player().SetPosition(objects.Position{
 			X: ms.currentMap.Entrance.X,
 			Y: ms.currentMap.Entrance.Y,
 		})
-		go ms.GetPortalMaps(portal.Portals)
+		go ms.GetPortalMaps(ms.currentMap)
 		return nil
 	}
 
 	// if no objects, fetch map
 	_map, err := ms.GetMapByID(id)
 	if err != nil {
+		log.Println(err.Error())
 		return err
 	}
+	// remove all online players locally
+	ms.RemoveOnlinePlayers()
 	ms.SetCurrentMap(_map)
 
 	return nil
