@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	Authenticate        FunctionName = "authenticate"
 	LoadOnlinePlayers   FunctionName = "load_online_players"
 	LoadNewOnlinePlayer FunctionName = "load_new_online_player"
 	RemoveOnlinePlayer  FunctionName = "remove_online_player"
@@ -94,20 +95,23 @@ func RouteDispatch(d Dispatch[[]byte]) {
 	if d.conn == nil {
 		panic("nil connection, dispatch not sent")
 	}
-	log.Println("routing dispatch", d)
 
 	switch d.Function {
 	case LoadOnlinePlayers:
 		dispatch := ParseDispatch[[]models.Image](d)
 		d.conn.mapService.LoadOnlinePlayers(dispatch.Data)
 	case LoadNewOnlinePlayer:
-		dispatch := ParseDispatch[models.Image](d)
+		dispatch := ParseDispatch[[]models.Image](d)
+		if dispatch.Data == nil || len(dispatch.Data) == 0 {
+			log.Println("nil data")
+			return
+		}
 		d.conn.mapService.LoadNewOnlinePlayer(dispatch.Data)
 	case UpdatePlayer:
 		dispatch := ParseDispatch[PlayerUpdate](d)
 		d.conn.mapService.UpdateLocalPlayer(dispatch.Data)
 	case RemoveOnlinePlayer:
 		dispatch := ParseDispatch[string](d)
-		d.conn.mapService.RemoveOnlinePlayer(dispatch.Data)
+		d.conn.mapService.RemoveOnlinePlayerByID(dispatch.Data)
 	}
 }

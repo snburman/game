@@ -1,23 +1,40 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
-	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/coder/websocket"
 	"github.com/snburman/game/config"
+)
+
+const (
+	ErrReadMessage  = WebsocketError("error reading message")
+	ErrParseMessage = WebsocketError("error parsing message")
+	ErrWriteMessage = WebsocketError("error writing message")
 )
 
 type (
 	Conn struct {
+		context.Context
 		UserID     string
 		websocket  *websocket.Conn
 		mapService *MapService
 		messages   chan []byte
+		status     websocket.StatusCode
+		close      struct {
+			status websocket.StatusCode
+			reason string
+		}
 	}
+	WebsocketError string
 )
+
+func (e WebsocketError) Error() string {
+	return string(e)
+}
 
 func NewConn(url string, ms *MapService) (*Conn, error) {
 	if ms == nil {
@@ -33,29 +50,29 @@ func NewConn(url string, ms *MapService) (*Conn, error) {
 		return nil, errors.New("nil url")
 	}
 
-	dialer := websocket.Dialer{
-		HandshakeTimeout: 10 * time.Second,
-	}
 	headers := make(map[string][]string)
 	headers["CLIENT_ID"] = []string{config.Env().CLIENT_ID}
 	headers["CLIENT_SECRET"] = []string{config.Env().CLIENT_SECRET}
 
 	url = url + "/" + ms.api.userID
-	log.Println("connecting to websocket", "url", url)
-	websocket, res, err := dialer.Dial(url, headers)
+	ctx := context.Background()
+	websocket, res, err := websocket.Dial(ctx, url, nil)
 	if err != nil {
 		log.Println("res", res)
 		return nil, err
 	}
-	log.Println("websocket connection established", "status", res.Status)
 
 	c := &Conn{
+		Context:    ctx,
 		UserID:     ms.api.userID,
 		websocket:  websocket,
 		messages:   make(chan []byte, 256),
 		mapService: ms,
 	}
 	go c.listen()
+	dispatch := NewDispatch(c, Authenticate, headers)
+	dispatch.MarshalAndPublish()
+
 	return c, nil
 }
 
@@ -64,47 +81,41 @@ func (c *Conn) listen() {
 		defer c.Close()
 		var dispatch Dispatch[[]byte]
 		for {
-			_, message, err := c.websocket.ReadMessage()
+			_, b, err := c.websocket.Read(context.Background())
 			if err != nil {
-				if websocket.IsUnexpectedCloseError(
-					err,
-					websocket.CloseGoingAway,
-					websocket.CloseAbnormalClosure,
-					websocket.CloseNormalClosure,
-				) {
-					log.Printf("error: %v", err)
-				}
-				close(c.messages)
+				log.Printf("error: %v", err)
+				c.close.status = websocket.StatusAbnormalClosure
+				c.close.reason = err.Error()
 				break
 			}
 			// Parse dispatch from websocket message
-			err = json.Unmarshal(message, &dispatch)
+			err = json.Unmarshal(b, &dispatch)
 			if err != nil {
 				log.Printf("error: %v", err)
-				continue
+				c.close.status = websocket.StatusAbnormalClosure
+				c.close.reason = err.Error()
+				break
 			}
 
 			// Set conn on dispatch
 			dispatch.conn = c
 			// Route dispatch to appropriate function
-			RouteDispatch(dispatch)
+			go RouteDispatch(dispatch)
 		}
 	}(c)
 
 	// outgoing messages
 	for {
 		msg, ok := <-c.messages
-		if !ok {
-			c.Close()
-			break
-		}
-		if c.websocket == nil {
+		if !ok || c.websocket == nil {
 			break
 		}
 
-		if err := c.websocket.WriteMessage(1, msg); err != nil {
+		if err := c.websocket.Write(c.Context, websocket.MessageText, msg); err != nil {
 			log.Println("error writing message", "error", err)
-			c.Close()
+			c.close.status = websocket.StatusAbnormalClosure
+			c.close.reason = err.Error()
+			break
 		}
 	}
 }
@@ -127,7 +138,14 @@ func (c *Conn) Close() error {
 	if c == nil {
 		return errors.New("cannot close nil connection")
 	}
-	c.websocket.Close()
-	log.Println("websocket connection closed, ", c.UserID)
-	return nil
+	close(c.messages)
+	var status websocket.StatusCode
+	if c.status == 0 {
+		status = websocket.StatusNormalClosure
+
+	} else {
+		status = c.status
+	}
+	log.Println("websocket connection closing, ", c.UserID)
+	return c.websocket.Close(status, c.close.reason)
 }

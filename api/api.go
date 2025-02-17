@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"syscall/js"
 
 	"github.com/snburman/game/config"
 )
@@ -24,12 +25,12 @@ func NewAPI() *API {
 
 func (a *API) GetUserID() string {
 	// Get user ID from global JS
-	// fun := js.Global().Get("id")
-	// id := fun.Invoke().String()
-	// if id == "" {
-	// 	panic("User ID not found")
-	// }
-	id := "6778d9d1a1a3232f20545d84"
+	fun := js.Global().Get("id")
+	id := fun.Invoke().String()
+	if id == "" {
+		panic("User ID not found")
+	}
+	// id := "6778d9d1a1a3232f20545d84"
 	a.userID = id
 	return id
 }

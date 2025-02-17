@@ -2,6 +2,7 @@ package objects
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/snburman/game/config"
 	"github.com/snburman/game/input"
 )
 
@@ -24,6 +25,24 @@ func NewPlayer(obj *Object, id string) *Player {
 		Object: obj,
 	}
 	return p
+}
+
+func NewDefaultPlayer(id string, x, y int) *Player {
+	obj := NewObjectFromFile(FileImage{
+		Name: "player",
+		Url:  "default_player.png",
+		Opts: ObjectOptions{
+			ObjectType: ObjectPlayer,
+			Position: Position{
+				X: x,
+				Y: y,
+			},
+			Direction: Right,
+			Speed:     1,
+			Scale:     config.Scale,
+		},
+	})
+	return NewPlayer(obj, id)
 }
 
 func (p *Player) Update(g IGame, tick uint) error {

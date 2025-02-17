@@ -75,17 +75,21 @@ func PlayersFromImages(images []models.Image) map[string]*Player {
 			img.AssetType != models.PlayerLeft && img.AssetType != models.PlayerRight {
 			continue
 		}
+		img.Image = models.ImageFromPixelData(img)
 		object := NewObject(img, ObjectOptions{
 			Position: Position{
 				X: img.X,
 				Y: img.Y,
 			},
-			Direction: Right,
-			Scale:     config.Scale,
-			Speed:     config.WalkSpeed,
+			ObjectType: ObjectPlayer,
+			Direction:  Down,
+			Scale:      config.Scale,
+			Speed:      config.WalkSpeed,
 		})
 		if _, ok := players[img.UserID]; !ok {
-			players[img.UserID] = NewPlayer(object, img.UserID)
+			newPlayer := NewPlayer(object, img.UserID)
+			newPlayer.SetID(img.UserID)
+			players[img.UserID] = newPlayer
 		}
 		players[img.UserID].SetFrame(DirectionFromAssetType(img.AssetType), object.Image())
 	}

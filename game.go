@@ -61,9 +61,6 @@ func (g *Game) Update() error {
 			return err
 		}
 	}
-	for _, p := range g.OnlinePlayers() {
-		p.Update(g, g.tick)
-	}
 
 	g.controls.Update(g, g.tick)
 	g.keyboard.Update(g)
