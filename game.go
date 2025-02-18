@@ -27,11 +27,10 @@ func NewGame() *Game {
 	g := &Game{
 		debug:        ebiten.NewImage(config.ScreenWidth, 100),
 		touchManager: input.NewTouchManager(),
+		mapService:   api.NewMapService(api.ApiClient),
 		keyboard:     objects.NewKeyboard(),
 		controls:     objects.NewControls(),
 	}
-	ms := api.NewMapService(api.ApiClient)
-	g.mapService = ms
 	return g
 }
 
@@ -54,6 +53,8 @@ func (g *Game) Update() error {
 		g.tick++
 	}
 
+	g.touchManager.Update()
+
 	objs := g.Objects()
 	for _, o := range objs {
 		err := o.Update(g, g.tick)
@@ -61,17 +62,15 @@ func (g *Game) Update() error {
 			return err
 		}
 	}
-
 	g.controls.Update(g, g.tick)
 	g.keyboard.Update(g)
+
 	g.Player().Update(g, g.tick)
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.Fill(color.Color(color.RGBA{
-		175, 175, 178, 255,
-	}))
+	screen.Fill(color.Color(config.BackgroundColor))
 	screen.DrawImage(g.DebugScreen(), &ebiten.DrawImageOptions{})
 
 	// draw game objects

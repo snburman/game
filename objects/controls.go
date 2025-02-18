@@ -1,8 +1,6 @@
 package objects
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/snburman/game/config"
 )
 
@@ -129,32 +127,19 @@ func (c *Controls) Objects() []*Object {
 	return c.objs
 }
 
-var touchIDs = make(map[ebiten.TouchID]bool, 128)
-
 func (c *Controls) Update(g IGame, tick uint) error {
-	var justReleasedIDs []ebiten.TouchID
-	justReleasedIDs = inpututil.AppendJustReleasedTouchIDs(justReleasedIDs)
-	for _, id := range justReleasedIDs {
-		delete(touchIDs, id)
-	}
-	newIDs := make([]ebiten.TouchID, 0, 56)
-	newIDs = inpututil.AppendJustPressedTouchIDs(newIDs)
-	for _, id := range newIDs {
-		touchIDs[id] = true
-	}
-
 	speed := g.Player().Speed()
-	for id := range touchIDs {
-		x, y := ebiten.TouchPosition(id)
+	for _, touch := range g.TouchManager().Touches() {
+		// x, y := ebiten.TouchPosition(id)
 		for _, control := range c.objs {
 			if control.name == "bButton" {
-				if control.IsPressed(x, y) {
+				if control.IsPressed(touch.X, touch.Y) {
 					g.Player().SetSpeed(config.RunSpeed)
 				} else {
 					g.Player().SetSpeed(config.WalkSpeed)
 				}
 			}
-			if control.IsPressed(x, y) {
+			if control.IsPressed(touch.X, touch.Y) {
 				switch control.name {
 				case "home_button":
 					g.LoadMap(g.PrimaryMap().ID.Hex())

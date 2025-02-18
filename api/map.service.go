@@ -40,7 +40,7 @@ func NewMapService(api *API) *MapService {
 		log.Println("error getting primary map")
 		panic(err)
 	}
-	ms.conn, err = NewConn(config.Env().WS_SERVER_URL+"/game/wasm/ws", ms)
+	ms.conn, err = NewConn(config.Env().WS_SERVER_URL+"/game/ws", ms)
 	if err != nil {
 		log.Println("error creating websocket connection")
 		panic(err)
