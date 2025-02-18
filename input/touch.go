@@ -1,8 +1,6 @@
 package input
 
 import (
-	"fmt"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -12,37 +10,37 @@ type Touch struct {
 }
 
 type TouchManager struct {
-	touchIDs []ebiten.TouchID
-	touches  map[ebiten.TouchID]Touch
+	touchIDs map[ebiten.TouchID]bool
 }
 
 func NewTouchManager() *TouchManager {
 	return &TouchManager{
-		touchIDs: []ebiten.TouchID{},
-		touches:  make(map[ebiten.TouchID]Touch),
+		touchIDs: make(map[ebiten.TouchID]bool, 128),
 	}
 }
 
-func (tm *TouchManager) Touches() map[ebiten.TouchID]Touch {
-	return tm.touches
-}
-
-func (tm *TouchManager) TouchIDs() []ebiten.TouchID {
+func (tm *TouchManager) TouchIDs() map[ebiten.TouchID]bool {
 	return tm.touchIDs
 }
 
 func (tm *TouchManager) Update() {
-	for id := range tm.touches {
-		if inpututil.IsTouchJustReleased(id) {
-			fmt.Println("Touches", tm.touches)
-			fmt.Println("Touch released:", id)
-			delete(tm.touches, id)
-		}
+	var justReleasedIDs []ebiten.TouchID
+	justReleasedIDs = inpututil.AppendJustReleasedTouchIDs(justReleasedIDs)
+	for _, id := range justReleasedIDs {
+		delete(tm.touchIDs, id)
 	}
+	newIDs := make([]ebiten.TouchID, 0, 56)
+	newIDs = inpututil.AppendJustPressedTouchIDs(newIDs)
+	for _, id := range newIDs {
+		tm.touchIDs[id] = true
+	}
+}
 
-	tm.touchIDs = inpututil.AppendJustPressedTouchIDs(tm.touchIDs)
-	for _, id := range tm.touchIDs {
+func (tm *TouchManager) Touches() []Touch {
+	touches := make([]Touch, 0, len(tm.touchIDs))
+	for id := range tm.touchIDs {
 		x, y := ebiten.TouchPosition(id)
-		tm.touches[id] = Touch{X: x, Y: y}
+		touches = append(touches, Touch{X: x, Y: y})
 	}
+	return touches
 }

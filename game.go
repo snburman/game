@@ -17,7 +17,6 @@ type Game struct {
 	debug        *ebiten.Image
 	tick         uint
 	touchManager *input.TouchManager
-	chat         *input.Chat
 	mapService   *api.MapService
 	keyboard     *objects.Keyboard
 	controls     *objects.Controls
@@ -28,12 +27,10 @@ func NewGame() *Game {
 	g := &Game{
 		debug:        ebiten.NewImage(config.ScreenWidth, 100),
 		touchManager: input.NewTouchManager(),
-		chat:         input.NewChat(),
 		mapService:   api.NewMapService(api.ApiClient),
 		keyboard:     objects.NewKeyboard(),
 		controls:     objects.NewControls(),
 	}
-
 	return g
 }
 
@@ -56,6 +53,8 @@ func (g *Game) Update() error {
 		g.tick++
 	}
 
+	g.touchManager.Update()
+
 	objs := g.Objects()
 	for _, o := range objs {
 		err := o.Update(g, g.tick)
@@ -66,15 +65,12 @@ func (g *Game) Update() error {
 	g.controls.Update(g, g.tick)
 	g.keyboard.Update(g)
 
-	g.chat.Update()
 	g.Player().Update(g, g.tick)
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.Fill(color.Color(color.RGBA{
-		175, 175, 178, 255,
-	}))
+	screen.Fill(color.Color(config.BackgroundColor))
 	screen.DrawImage(g.DebugScreen(), &ebiten.DrawImageOptions{})
 
 	// draw game objects
@@ -92,9 +88,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, o := range g.controls.Objects() {
 		o.Draw(screen, g.tick)
 	}
-
-	// draw chat
-	g.chat.Draw(screen)
 
 	// draw local player
 	g.Player().Draw(screen, g.tick)

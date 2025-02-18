@@ -7,9 +7,9 @@ import (
 )
 
 type Player struct {
+	*Object
 	id       string
 	Username string
-	*Object
 }
 
 func NewPlayer(obj *Object, id string) *Player {
@@ -21,8 +21,8 @@ func NewPlayer(obj *Object, id string) *Player {
 	}
 	obj.objType = ObjectPlayer
 	p := &Player{
-		id:     id,
 		Object: obj,
+		id:     id,
 	}
 	return p
 }

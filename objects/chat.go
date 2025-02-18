@@ -1,4 +1,4 @@
-package input
+package objects
 
 import (
 	"bytes"
@@ -13,10 +13,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/snburman/game/config"
+	"github.com/snburman/game/models"
 	"golang.org/x/image/font/gofont/goregular"
 )
 
 type Chat struct {
+	Object    *Object
 	ui        *ebitenui.UI
 	container *widget.Container
 	textInput *widget.TextInput
@@ -33,6 +35,29 @@ func NewChat() *Chat {
 	c.ui = &ebitenui.UI{
 		Container: c.container,
 	}
+
+	rect := image.Rect(0, 0, c.width, c.height)
+	_img := ebiten.NewImageFromImage(image.NewRGBA(rect))
+	_img.Fill(color.RGBA{255, 255, 255, 255})
+
+	img := models.Image{
+		Name:      "chat",
+		AssetType: models.Object,
+		Width:     c.width,
+		Height:    c.height,
+		X:         0,
+		Y:         config.ScreenHeight - c.height,
+		Image:     _img,
+	}
+
+	c.Object = NewObject(img, ObjectOptions{
+		Position: Position{
+			X: img.X,
+			Y: img.Y,
+		},
+		Direction: Down,
+	})
+
 	return c
 }
 
@@ -46,7 +71,6 @@ func (c *Chat) newContainer() *widget.Container {
 	rootContainer := widget.NewContainer(
 		// the container will use a plain color as its background
 		widget.ContainerOpts.BackgroundImage(uiImage.NewNineSliceColor(color.NRGBA{R: 100, G: 100, B: 100, A: 255})),
-		widget.ContainerOpts.Layout(NewLayouter()),
 
 		// the container will use a row layout to layout the textinput widgets
 		widget.ContainerOpts.Layout(widget.NewRowLayout(
@@ -116,23 +140,22 @@ func (c *Chat) newContainer() *widget.Container {
 	return rootContainer
 }
 
-func (c *Chat) Update() {
+func (c *Chat) Update(g IGame, tick uint) {
 	c.ui.Update()
+
+	for _, touch := range g.TouchManager().Touches() {
+		if c.Object.IsPressed(touch.X, touch.Y) {
+			c.textInput.Focus(true)
+		}
+	}
 }
 
 func (c *Chat) Draw(screen *ebiten.Image) {
-
-	rect := image.Rect(0, 0, c.width, c.height)
-	img := ebiten.NewImageFromImage(image.NewRGBA(rect))
-	img.Fill(color.RGBA{255, 255, 255, 255})
-
 	opts := &ebiten.DrawImageOptions{}
-	x := float64(screen.Bounds().Min.X)
-	y := float64(screen.Bounds().Max.Y) - float64(rect.Max.Y)
-	opts.GeoM.Translate(x, y)
+	opts.GeoM.Translate(float64(c.Object.Position().X), float64(c.Object.Position().Y))
 
-	c.ui.Draw(img)
-	screen.DrawImage(img, opts)
+	c.ui.Draw(c.Object.Image())
+	screen.DrawImage(c.Object.Image(), opts)
 }
 
 func (c *Chat) Container() *widget.Container {
@@ -154,20 +177,4 @@ func loadFont(size float64) (text.Face, error) {
 		Source: s,
 		Size:   size,
 	}, nil
-}
-
-type Layouter struct{}
-
-func NewLayouter() *Layouter {
-	return &Layouter{}
-}
-
-func (l *Layouter) PreferredSize(widgets []widget.PreferredSizeLocateableWidget) (int, int) {
-	return config.ScreenWidth, 50
-}
-
-func (l *Layouter) Layout(widgets []widget.PreferredSizeLocateableWidget, rect image.Rectangle) {
-	for _, w := range widgets {
-		w.SetLocation(rect)
-	}
 }
