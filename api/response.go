@@ -8,12 +8,12 @@ type Response struct {
 	Error   error
 }
 
-func (r *Response) GetHeader(key string) string {
+func (r *Response) GetHeader(key string) (string, bool) {
 	if r.Headers == nil {
-		return ""
+		return "", false
 	}
 	if v, ok := r.Headers[key]; ok {
-		return v[0]
+		return v[0], true
 	}
-	return ""
+	return "", false
 }

@@ -93,7 +93,8 @@ func ParseDispatch[T any](d Dispatch[[]byte]) Dispatch[T] {
 
 func RouteDispatch(d Dispatch[[]byte]) {
 	if d.conn == nil {
-		panic("nil connection, dispatch not sent")
+		log.Println("nil connection, message not sent, id", d.ID)
+		return
 	}
 
 	switch d.Function {

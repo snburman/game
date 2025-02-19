@@ -198,12 +198,11 @@ func (ms *MapService) LoadOnlinePlayers(imgs []models.Image) {
 		return
 	}
 	ms.onlinePlayers = objects.PlayersFromImages(imgs)
-	log.Println("online players", ms.onlinePlayers)
 }
 
 func (ms *MapService) LoadNewOnlinePlayer(imgs []models.Image) {
 	var player *objects.Player
-	if imgs == nil || len(imgs) == 0 {
+	if len(imgs) == 0 {
 		log.Println("no new online player image data")
 		player = objects.NewDefaultPlayer(ms.api.userID, ms.currentMap.Entrance.X, ms.currentMap.Entrance.Y)
 	} else {
