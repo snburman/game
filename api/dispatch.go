@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/snburman/game/models"
+	"github.com/snburman/game/objects"
 )
 
 const (
@@ -110,5 +111,8 @@ func RouteDispatch(d Dispatch[[]byte]) {
 	case RemoveOnlinePlayer:
 		dispatch := ParseDispatch[string](d)
 		d.conn.mapService.RemoveOnlinePlayerByID(dispatch.Data)
+	case Chat:
+		dispatch := ParseDispatch[objects.ChatMessage](d)
+		objects.ChatService.AddMessage(dispatch.Data)
 	}
 }

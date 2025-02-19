@@ -16,11 +16,11 @@ const MAX_TICS = 10000
 type Game struct {
 	debug        *ebiten.Image
 	tick         uint
+	player       *objects.Player
 	touchManager *input.TouchManager
 	mapService   *api.MapService
 	keyboard     *objects.Keyboard
 	controls     *objects.Controls
-	player       *objects.Player
 }
 
 func NewGame() *Game {
@@ -66,6 +66,8 @@ func (g *Game) Update() error {
 	g.keyboard.Update(g)
 
 	g.Player().Update(g, g.tick)
+	objects.ChatService.Update(g, g.tick)
+
 	return nil
 }
 
@@ -74,8 +76,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(g.DebugScreen(), &ebiten.DrawImageOptions{})
 
 	// draw game objects
-	objects := g.Objects()
-	for _, o := range objects {
+	objs := g.Objects()
+	for _, o := range objs {
 		o.Draw(screen, g.tick)
 	}
 
@@ -91,6 +93,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// draw local player
 	g.Player().Draw(screen, g.tick)
+	objects.ChatService.Draw(screen)
 }
 
 func (g *Game) LoadMap(id string) error {

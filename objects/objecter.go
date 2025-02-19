@@ -17,6 +17,7 @@ type IGame interface {
 	Objects() []Objecter
 	Player() *Player
 	SetPlayer(*Player)
+	OnlinePlayers() map[string]*Player
 	DispatchUpdatePlayer()
 	Keyboard() *Keyboard
 	Controls() *Controls

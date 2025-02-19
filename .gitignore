@@ -3,3 +3,4 @@
 game.wasm
 .vscode
 config/vars.go
+internal
