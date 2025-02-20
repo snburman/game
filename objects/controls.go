@@ -128,10 +128,12 @@ func (c *Controls) Objects() []*Object {
 }
 
 func (c *Controls) Update(g IGame, tick uint) error {
-	speed := g.Player().Speed()
-	for _, touch := range g.TouchManager().Touches() {
-		// x, y := ebiten.TouchPosition(id)
-		for _, control := range c.objs {
+	for _, control := range c.objs {
+		if control.IsClicked() {
+			c.onPress(g, control)
+			continue
+		}
+		for _, touch := range g.TouchManager().Touches() {
 			if control.name == "bButton" {
 				if control.IsPressed(touch.X, touch.Y) {
 					g.Player().SetSpeed(config.RunSpeed)
@@ -140,40 +142,42 @@ func (c *Controls) Update(g IGame, tick uint) error {
 				}
 			}
 			if control.IsPressed(touch.X, touch.Y) {
-				switch control.name {
-				case "home_button":
-					g.LoadMap(g.PrimaryMap().ID.Hex())
-				case "upButton":
-					g.Player().SetDirection(Up)
-					if !g.Player().Breached().Min.Y {
-						g.Player().Position().Move(Up, speed)
-					}
-					g.DispatchUpdatePlayer()
-				case "downButton":
-					g.Player().SetDirection(Down)
-					if !g.Player().Breached().Max.Y {
-						g.Player().Position().Move(Down, speed)
-					}
-					g.DispatchUpdatePlayer()
-				case "leftButton":
-					g.Player().SetDirection(Left)
-					if !g.Player().Breached().Min.X {
-						g.Player().Position().Move(Left, speed)
-					}
-					g.DispatchUpdatePlayer()
-				case "rightButton":
-					g.Player().SetDirection(Right)
-					if !g.Player().Breached().Max.X {
-						g.Player().Position().Move(Right, speed)
-					}
-					g.DispatchUpdatePlayer()
-				default:
-				}
-
+				c.onPress(g, control)
 			}
-
 		}
 	}
-
 	return nil
+}
+
+func (c *Controls) onPress(g IGame, control *Object) {
+	speed := g.Player().Speed()
+	switch control.name {
+	case "home_button":
+		g.LoadMap(g.PrimaryMap().ID.Hex())
+	case "upButton":
+		g.Player().SetDirection(Up)
+		if !g.Player().Breached().Min.Y {
+			g.Player().Position().Move(Up, speed)
+		}
+		g.DispatchUpdatePlayer()
+	case "downButton":
+		g.Player().SetDirection(Down)
+		if !g.Player().Breached().Max.Y {
+			g.Player().Position().Move(Down, speed)
+		}
+		g.DispatchUpdatePlayer()
+	case "leftButton":
+		g.Player().SetDirection(Left)
+		if !g.Player().Breached().Min.X {
+			g.Player().Position().Move(Left, speed)
+		}
+		g.DispatchUpdatePlayer()
+	case "rightButton":
+		g.Player().SetDirection(Right)
+		if !g.Player().Breached().Max.X {
+			g.Player().Position().Move(Right, speed)
+		}
+		g.DispatchUpdatePlayer()
+	default:
+	}
 }

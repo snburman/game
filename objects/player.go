@@ -4,6 +4,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/snburman/game/config"
 	"github.com/snburman/game/input"
+	"github.com/snburman/game/models"
 )
 
 type Player struct {
@@ -27,22 +28,9 @@ func NewPlayer(obj *Object, id string) *Player {
 	return p
 }
 
-func NewDefaultPlayer(id string, x, y int) *Player {
-	obj := NewObjectFromFile(FileImage{
-		Name: "player",
-		Url:  "default_player.png",
-		Opts: ObjectOptions{
-			ObjectType: ObjectPlayer,
-			Position: Position{
-				X: x,
-				Y: y,
-			},
-			Direction: Right,
-			Speed:     1,
-			Scale:     config.Scale,
-		},
-	})
-	return NewPlayer(obj, id)
+func NewDefaultPlayer(img models.Image, x, y int) *Player {
+	playerSlice := PlayersFromImages([]models.Image{img})
+	return playerSlice[config.Env().ADMIN_ID]
 }
 
 func (p *Player) Update(g IGame, tick uint) error {
@@ -61,7 +49,11 @@ func (p *Player) Update(g IGame, tick uint) error {
 		p.DetectObjectCollision(o)
 	}
 
+	p.SetSpeed(config.WalkSpeed)
 	var f input.InputFunctions = map[input.Key]func(){
+		input.Space: func() {
+			p.SetSpeed(config.RunSpeed)
+		},
 		input.Up: func() {
 			p.SetDirection(Up)
 			if !p.Breached().Min.Y {

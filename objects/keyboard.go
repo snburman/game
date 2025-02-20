@@ -2,7 +2,6 @@ package objects
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/snburman/game/config"
 	"github.com/snburman/game/input"
 )
 
@@ -30,7 +29,9 @@ func (k *Keyboard) IsPressed(key input.Key) bool {
 
 func (k *Keyboard) Update(g IGame) {
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
-		g.Player().SetSpeed(config.RunSpeed)
+		k.Press(input.Space)
+	} else {
+		k.Release(input.Space)
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyH) {
 		g.LoadMap(g.PrimaryMap().ID.Hex())

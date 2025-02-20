@@ -76,6 +76,7 @@ func PlayersFromImages(images []models.Image) map[string]*Player {
 			img.AssetType != models.PlayerLeft && img.AssetType != models.PlayerRight {
 			continue
 		}
+
 		img.Image = models.ImageFromPixelData(img)
 		object := NewObject(img, ObjectOptions{
 			Position: Position{

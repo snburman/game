@@ -275,6 +275,14 @@ func (o *Object) IsPressed(x, y int) bool {
 	return false
 }
 
+func (o *Object) IsClicked() bool {
+	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		return o.IsPressed(x, y)
+	}
+	return false
+}
+
 func (o *Object) ID() string {
 	return o.id
 }

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -169,8 +170,14 @@ func (ms *MapService) SetCurrentMap(_map models.Map[[]models.Image]) {
 	if ms.player == nil && player != nil {
 		ms.player = player
 	}
+	// set player to default if not set
 	if ms.player == nil && player == nil {
-		ms.player = objects.NewDefaultPlayer(ms.api.userID, _map.Entrance.X, _map.Entrance.Y)
+		p, err := ms.GetDefaultPlayer()
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
+		ms.player = p
 	}
 	ms.player.SetPosition(objects.Position{
 		X: _map.Entrance.X,
@@ -185,6 +192,31 @@ func (ms *MapService) CurrentObjects() []objects.Objecter {
 
 func (ms *MapService) Player() *objects.Player {
 	return ms.player
+}
+
+func (ms *MapService) GetDefaultPlayer() (*objects.Player, error) {
+	img := models.Image{}
+	path := config.Env().SERVER_URL + "/game/wasm/player/default"
+	res := ms.api.Request(http.MethodGet, path)
+	if res.Error != nil {
+		log.Println(res.Error.Error())
+		return nil, res.Error
+	}
+	fmt.Println(string(res.Body))
+	err := json.Unmarshal(res.Body, &img)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	player := objects.NewDefaultPlayer(
+		img,
+		ms.currentMap.Entrance.X,
+		ms.currentMap.Entrance.Y,
+	)
+	player.SetID(ms.api.userID)
+
+	return player, nil
 }
 
 func (ms *MapService) OnlinePlayers() map[string]*objects.Player {
@@ -204,7 +236,7 @@ func (ms *MapService) LoadNewOnlinePlayer(imgs []models.Image) {
 	var player *objects.Player
 	if len(imgs) == 0 {
 		log.Println("no new online player image data")
-		player = objects.NewDefaultPlayer(ms.api.userID, ms.currentMap.Entrance.X, ms.currentMap.Entrance.Y)
+		return
 	} else {
 		playerSlice := objects.PlayersFromImages(imgs)
 		p, ok := playerSlice[imgs[0].UserID]
